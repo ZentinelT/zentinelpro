@@ -7,7 +7,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#f5f3ee;
@@ -267,7 +267,6 @@ h1 span{color:var(--gold);}
 .kpi-value.negative{color:var(--accent2);}
 .kpi-value.neutral{color:var(--accent3);}
 .kpi-sub{font-size:11px;color:var(--muted);margin-top:6px;}
-.charts-row{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px;}
 .charts-row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
 .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;opacity:0;transform:translateY(12px);transition:opacity 0.4s ease 0.1s,transform 0.4s ease 0.1s;box-shadow:var(--shadow);}
 .card.loaded{opacity:1;transform:translateY(0);}
@@ -288,6 +287,10 @@ tbody td{padding:10px 12px;}
 .loader::after{content:'';display:block;width:40px;height:3px;background:var(--gold);margin:16px auto 0;border-radius:2px;animation:load 1s ease-in-out infinite alternate;}
 @keyframes load{from{transform:scaleX(0.2)}to{transform:scaleX(1)}}
 canvas{max-height:220px;}
+#equityChart{max-height:360px;}
+.charts-row{display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:14px;}
+.charts-row3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;}
+.charts-row-secondary{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
 .empty-state{text-align:center;padding:60px;font-size:13px;color:var(--muted);}
 
 /* CALENDAR */
@@ -439,10 +442,10 @@ body.dark-mode .prop-header{border-bottom-color:rgba(201,168,76,0.1);}
   font-size:18px;flex-shrink:0;
 }
 .prop-title-group{}
-.prop-title{font-size:13px;font-weight:700;letter-spacing:0.2px;color:var(--text);}
-.prop-subtitle{font-size:11px;color:var(--muted);margin-top:2px;font-family:'DM Mono',monospace;letter-spacing:0.5px;}
+.prop-title{font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;letter-spacing:-0.2px;color:var(--text);}
+.prop-subtitle{font-family:'Outfit',sans-serif;font-size:11px;font-weight:300;color:var(--muted);margin-top:2px;letter-spacing:0.3px;}
 .prop-badge{
-  font-family:'DM Mono',monospace;font-size:9px;font-weight:700;
+  font-family:'Outfit',sans-serif;font-size:9px;font-weight:600;
   letter-spacing:1.5px;text-transform:uppercase;
   padding:4px 10px;border-radius:20px;
 }
@@ -453,8 +456,8 @@ body.dark-mode .prop-header{border-bottom-color:rgba(201,168,76,0.1);}
 /* Status pill */
 .prop-status-pill{
   display:flex;align-items:center;gap:6px;
-  font-family:'DM Mono',monospace;font-size:10px;font-weight:600;
-  letter-spacing:0.5px;padding:5px 12px;border-radius:20px;
+  font-family:'Outfit',sans-serif;font-size:10px;font-weight:600;
+  letter-spacing:0.8px;text-transform:uppercase;padding:5px 12px;border-radius:20px;
 }
 .prop-status-pill .dot{width:7px;height:7px;border-radius:50%;animation:propPulse 2s ease-in-out infinite;}
 .prop-status-pill.ok{background:rgba(22,199,132,0.1);color:var(--accent);border:1px solid rgba(22,199,132,0.2);}
@@ -467,58 +470,47 @@ body.dark-mode .prop-header{border-bottom-color:rgba(201,168,76,0.1);}
 .prop-status-pill.complete .dot{background:var(--gold);box-shadow:0 0 6px rgba(201,168,76,0.6);}
 @keyframes propPulse{0%,100%{opacity:1}50%{opacity:0.4}}
 
-/* Main grid */
+/* Main grid + Rings */
 .prop-body{padding:20px 24px;}
-.prop-kpi-grid{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;
+.prop-rings-grid{
+  display:grid;gap:12px;margin-bottom:20px;
 }
-.prop-kpi-item{
-  background:var(--bg);border:1px solid var(--border);border-radius:12px;
-  padding:14px 16px;position:relative;overflow:hidden;
-  transition:border-color 0.2s,box-shadow 0.2s;
+.prop-ring-card{
+  background:var(--bg);border:1px solid var(--border);border-radius:14px;
+  padding:20px 16px;display:flex;flex-direction:column;align-items:center;gap:6px;
+  position:relative;overflow:hidden;transition:border-color 0.2s,box-shadow 0.2s;
 }
-body.dark-mode .prop-kpi-item{background:rgba(255,255,255,0.02);}
-.prop-kpi-item:hover{border-color:rgba(201,168,76,0.3);box-shadow:0 4px 16px rgba(201,168,76,0.06);}
-.prop-kpi-item::after{
-  content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
-  border-radius:0 0 12px 12px;
+body.dark-mode .prop-ring-card{background:rgba(255,255,255,0.02);}
+.prop-ring-card:hover{border-color:rgba(201,168,76,0.25);box-shadow:0 4px 20px rgba(0,0,0,0.2);}
+.prop-ring-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
 }
-.prop-kpi-item.profit-item::after{background:linear-gradient(90deg,var(--accent),transparent);}
-.prop-kpi-item.dd-item::after{background:linear-gradient(90deg,var(--accent2),transparent);}
-.prop-kpi-item.days-item::after{background:linear-gradient(90deg,var(--gold),transparent);}
-.prop-kpi-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:5px;}
-.prop-kpi-label svg{opacity:0.5;}
-.prop-kpi-val{font-family:'DM Mono',monospace;font-size:22px;font-weight:700;letter-spacing:-0.5px;line-height:1;}
-.prop-kpi-sub{font-size:10px;color:var(--muted);margin-top:5px;font-family:'DM Mono',monospace;}
-
-/* Progress gauges */
-.prop-gauges{display:flex;flex-direction:column;gap:14px;margin-bottom:20px;}
-.prop-gauge{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px 16px;}
-body.dark-mode .prop-gauge{background:rgba(255,255,255,0.02);}
-.prop-gauge-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-.prop-gauge-label{font-size:11px;font-weight:600;color:var(--text);letter-spacing:0.1px;}
-.prop-gauge-values{display:flex;align-items:center;gap:8px;}
-.prop-gauge-current{font-family:'DM Mono',monospace;font-size:12px;font-weight:700;}
-.prop-gauge-limit{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);}
-.prop-gauge-sep{color:var(--border2);font-size:11px;}
-.prop-track{height:8px;background:var(--border);border-radius:99px;overflow:hidden;position:relative;}
-.prop-fill{height:100%;border-radius:99px;transition:width 0.8s cubic-bezier(0.34,1.56,0.64,1);position:relative;}
-.prop-fill::after{content:'';position:absolute;right:0;top:0;bottom:0;width:3px;border-radius:99px;background:rgba(255,255,255,0.6);}
-.prop-fill.fill-profit{background:linear-gradient(90deg,rgba(22,199,132,0.5),var(--accent));}
-.prop-fill.fill-dd-ok{background:linear-gradient(90deg,rgba(22,199,132,0.4),rgba(22,199,132,0.8));}
-.prop-fill.fill-dd-warn{background:linear-gradient(90deg,rgba(245,158,11,0.5),#f59e0b);}
-.prop-fill.fill-dd-danger{background:linear-gradient(90deg,rgba(234,57,67,0.5),var(--accent2));}
-.prop-fill.fill-profit-done{background:linear-gradient(90deg,rgba(201,168,76,0.5),var(--gold));}
-.prop-gauge-pct{font-size:10px;color:var(--muted);margin-top:5px;text-align:right;font-family:'DM Mono',monospace;}
+.prop-ring-card.profit::before{background:linear-gradient(90deg,transparent,var(--accent),transparent);}
+.prop-ring-card.dd::before{background:linear-gradient(90deg,transparent,var(--warn),transparent);}
+.prop-ring-card.daily::before{background:linear-gradient(90deg,transparent,var(--accent),transparent);}
+.prop-ring-card.days::before{background:linear-gradient(90deg,transparent,var(--gold),transparent);}
+.prop-ring-wrap{position:relative;width:88px;height:88px;flex-shrink:0;}
+.prop-ring-wrap svg{display:block;}
+.prop-ring-inner{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+}
+.prop-ring-pct{font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;line-height:1;letter-spacing:-0.5px;}
+.prop-ring-of{font-family:'Outfit',sans-serif;font-size:8px;font-weight:300;color:var(--muted);margin-top:2px;letter-spacing:0.5px;text-transform:uppercase;}
+.prop-ring-val{font-family:'Outfit',sans-serif;font-size:24px;font-weight:700;line-height:1;letter-spacing:-1px;}
+.prop-ring-name{font-family:'Outfit',sans-serif;font-size:10px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.prop-ring-lim{font-family:'Outfit',sans-serif;font-size:10px;font-weight:300;color:var(--muted);}
+.prop-ring-rest{font-family:'Outfit',sans-serif;font-size:11px;font-weight:400;color:var(--muted);text-align:center;line-height:1.4;}
+.prop-ring-rest strong{font-weight:600;color:var(--text);}
 
 /* Days dots redesigned */
 .prop-days-section{margin-top:4px;}
-.prop-days-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);margin-bottom:10px;}
+.prop-days-label{font-family:'Outfit',sans-serif;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:10px;}
 .prop-days-track{display:flex;flex-wrap:wrap;gap:6px;}
 .prop-day-pip{
   width:28px;height:28px;border-radius:8px;
   display:flex;align-items:center;justify-content:center;
-  font-family:'DM Mono',monospace;font-size:10px;font-weight:700;
+  font-family:'Outfit',sans-serif;font-size:10px;font-weight:600;
   border:1.5px solid;transition:all 0.2s;
 }
 .prop-day-pip.done{
@@ -533,7 +525,8 @@ body.dark-mode .prop-gauge{background:rgba(255,255,255,0.02);}
 .prop-alerts{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
 .prop-alert-v2{
   display:flex;align-items:flex-start;gap:10px;
-  padding:10px 14px;border-radius:10px;font-size:12px;line-height:1.5;
+  padding:10px 14px;border-radius:10px;
+  font-family:'Outfit',sans-serif;font-size:12px;font-weight:400;line-height:1.5;
 }
 .prop-alert-v2 .alert-icon{font-size:14px;flex-shrink:0;margin-top:1px;}
 .prop-alert-v2.danger{background:rgba(234,57,67,0.08);border:1px solid rgba(234,57,67,0.2);color:var(--accent2);}
@@ -2074,32 +2067,49 @@ function renderPropCard() {
   if (!m) { el.style.display = 'none'; return; }
 
   const typeLabels = { eval1: 'Evaluación Fase 1', eval2: 'Evaluación Fase 2', funded: 'Funded Live' };
-  const typeIcons  = { eval1: '🎯', eval2: '⚡', funded: '🏆' };
   const badgeCls   = { eval1: 'eval1', eval2: 'eval2', funded: 'funded' };
   const badgeLabel = typeLabels[cfg.account_type] || '';
-  const badgeIcon  = typeIcons[cfg.account_type] || '📊';
   const badgeClass = badgeCls[cfg.account_type] || '';
 
-  // Profit calculations
+  // SVG ring helper
+  const CIRC = 226.2; // 2*pi*36
+  function ring(fill_pct, color, glow_color) {
+    const offset = CIRC - (CIRC * Math.min(100, Math.max(0, fill_pct)) / 100);
+    return `
+      <svg viewBox="0 0 88 88" width="88" height="88" style="transform:rotate(-90deg)">
+        <circle cx="44" cy="44" r="36" fill="none" stroke="#1a1a14" stroke-width="5"/>
+        <circle cx="44" cy="44" r="36" fill="none" stroke="${color}" stroke-width="5"
+          stroke-dasharray="${CIRC}" stroke-dashoffset="${offset.toFixed(1)}"
+          stroke-linecap="round"
+          style="filter:drop-shadow(0 0 6px ${glow_color});transition:stroke-dashoffset 0.9s cubic-bezier(0.34,1.2,0.64,1)"/>
+        <circle cx="44" cy="44" r="30" fill="none" stroke="${color}" stroke-width="0.5" stroke-dasharray="2 17.3" opacity="0.12"/>
+      </svg>`;
+  }
+
+  // Profit ring
   const profitPct    = m.profitPct;
   const profitTarget = cfg.profit_target || 0;
-  const profitFill   = profitTarget > 0 ? Math.min(100, Math.max(0, (profitPct / profitTarget) * 100)) : 0;
+  const profitFill   = profitTarget > 0 ? (profitPct / profitTarget) * 100 : 0;
   const profitDone   = profitTarget > 0 && profitPct >= profitTarget;
+  const profitColor  = profitDone ? 'var(--gold)' : m.totalProfit >= 0 ? 'var(--accent)' : 'var(--accent2)';
+  const profitGlow   = profitDone ? 'rgba(201,168,76,0.5)' : m.totalProfit >= 0 ? 'rgba(22,199,132,0.5)' : 'rgba(234,57,67,0.4)';
 
-  // Max DD
-  const maxDDPct = cfg.max_drawdown || 0;
-  const ddFill   = maxDDPct > 0 ? Math.min(100, (m.liveDD / maxDDPct) * 100) : 0;
-  const ddClass  = ddFill >= 90 ? 'fill-dd-danger' : ddFill >= 65 ? 'fill-dd-warn' : 'fill-dd-ok';
-  const ddColor  = ddFill >= 90 ? 'var(--accent2)' : ddFill >= 65 ? '#f59e0b' : 'var(--accent)';
+  // Max DD ring
+  const maxDDPct  = cfg.max_drawdown || 0;
+  const ddFill    = maxDDPct > 0 ? (m.liveDD / maxDDPct) * 100 : 0;
+  const ddColor   = ddFill >= 90 ? 'var(--accent2)' : ddFill >= 65 ? '#f59e0b' : 'var(--accent)';
+  const ddGlow    = ddFill >= 90 ? 'rgba(234,57,67,0.5)' : ddFill >= 65 ? 'rgba(245,158,11,0.5)' : 'rgba(22,199,132,0.4)';
 
-  // Daily DD
+  // Daily DD ring
   const dailyDDPct = cfg.daily_drawdown || 0;
-  const dailyFill  = dailyDDPct > 0 ? Math.min(100, (m.worstDayPct / dailyDDPct) * 100) : 0;
-  const dailyClass = dailyFill >= 90 ? 'fill-dd-danger' : dailyFill >= 65 ? 'fill-dd-warn' : 'fill-dd-ok';
+  const dailyFill  = dailyDDPct > 0 ? (m.worstDayPct / dailyDDPct) * 100 : 0;
   const dailyColor = dailyFill >= 90 ? 'var(--accent2)' : dailyFill >= 65 ? '#f59e0b' : 'var(--accent)';
+  const dailyGlow  = dailyFill >= 90 ? 'rgba(234,57,67,0.5)' : dailyFill >= 65 ? 'rgba(245,158,11,0.5)' : 'rgba(22,199,132,0.4)';
 
-  // Days
-  const minDays = cfg.min_trading_days || 0;
+  // Days ring
+  const minDays   = cfg.min_trading_days || 0;
+  const daysFill  = minDays > 0 ? (m.tradingDays / minDays) * 100 : 0;
+  const daysDone  = minDays > 0 && m.tradingDays >= minDays;
 
   // Overall status
   let overallStatus = 'ok', overallLabel = 'En curso';
@@ -2114,44 +2124,112 @@ function renderPropCard() {
   // Alerts
   const alertsArr = [];
   if (m.liveDD >= maxDDPct * 0.9 && maxDDPct > 0)
-    alertsArr.push({type:'danger', icon:'⚠️', text:`Drawdown al <strong>${(m.liveDD/maxDDPct*100).toFixed(0)}%</strong> del límite — ${m.liveDD.toFixed(2)}% de ${maxDDPct}%`});
+    alertsArr.push({type:'danger', text:`Drawdown al <strong>${(m.liveDD/maxDDPct*100).toFixed(0)}%</strong> del límite — ${m.liveDD.toFixed(2)}% de ${maxDDPct}%`});
   else if (m.liveDD >= maxDDPct * 0.65 && maxDDPct > 0)
-    alertsArr.push({type:'warning', icon:'⚡', text:`Drawdown al <strong>${(m.liveDD/maxDDPct*100).toFixed(0)}%</strong> del límite — tomá precaución`});
+    alertsArr.push({type:'warning', text:`Drawdown al <strong>${(m.liveDD/maxDDPct*100).toFixed(0)}%</strong> del límite — tomá precaución`});
   if (m.worstDayPct >= dailyDDPct * 0.9 && dailyDDPct > 0)
-    alertsArr.push({type:'danger', icon:'⚠️', text:`DD diario cerca del límite — <strong>${m.worstDayPct.toFixed(2)}%</strong> de ${dailyDDPct}%`});
+    alertsArr.push({type:'danger', text:`DD diario cerca del límite — <strong>${m.worstDayPct.toFixed(2)}%</strong> de ${dailyDDPct}%`});
   if (profitDone)
-    alertsArr.push({type:'success', icon:'✅', text:`Objetivo de ganancia alcanzado — <strong>${profitPct.toFixed(2)}%</strong> de ${profitTarget}%`});
+    alertsArr.push({type:'success', text:`Objetivo de ganancia alcanzado — <strong>${profitPct.toFixed(2)}%</strong> de ${profitTarget}%`});
   if (m.consistencyViolation)
-    alertsArr.push({type:'warning', icon:'📊', text:`Regla de consistencia: un día representa el <strong>${m.consistencyViolation}%</strong> del total (límite: ${cfg.consistency_rule}%)`});
+    alertsArr.push({type:'warning', text:`Regla de consistencia: un día representa el <strong>${m.consistencyViolation}%</strong> del total (límite: ${cfg.consistency_rule}%)`});
 
   const alertsHTML = alertsArr.length ? `
     <div class="prop-alerts">
-      ${alertsArr.map(a => `<div class="prop-alert-v2 ${a.type}"><span class="alert-icon">${a.icon}</span><span>${a.text}</span></div>`).join('')}
+      ${alertsArr.map(a => `<div class="prop-alert-v2 ${a.type}"><span>${a.text}</span></div>`).join('')}
     </div>` : '';
 
   // Days pips
   const dayPipsHTML = minDays > 0 ? `
     <div class="prop-days-section">
-      <div class="prop-days-label">Días mínimos operados</div>
+      <div class="prop-days-label">Días activos</div>
       <div class="prop-days-track">
-        ${Array.from({length: minDays}, (_,i) => `
-          <div class="prop-day-pip ${i < m.tradingDays ? 'done' : 'pending'}">${i+1}</div>
-        `).join('')}
+        ${Array.from({length: minDays}, (_,i) =>
+          `<div class="prop-day-pip ${i < m.tradingDays ? 'done' : 'pending'}">${i+1}</div>`
+        ).join('')}
       </div>
     </div>` : '';
 
-  const profitFillClass = profitDone ? 'fill-profit-done' : 'fill-profit';
-  const profitValColor  = m.totalProfit >= 0 ? 'var(--accent)' : 'var(--accent2)';
+  // Build ring cards
+  const ringCards = [];
+
+  if (profitTarget > 0) {
+    ringCards.push(`
+      <div class="prop-ring-card profit">
+        <div class="prop-ring-wrap">
+          ${ring(profitFill, profitColor, profitGlow)}
+          <div class="prop-ring-inner">
+            <div class="prop-ring-pct" style="color:${profitColor}">${Math.min(100,profitFill).toFixed(0)}%</div>
+            <div class="prop-ring-of">${profitDone ? 'logrado' : 'avance'}</div>
+          </div>
+        </div>
+        <div class="prop-ring-val" style="color:${profitColor}">${m.totalProfit>=0?'+':''}${profitPct.toFixed(2)}%</div>
+        <div class="prop-ring-name">Objetivo</div>
+        <div class="prop-ring-lim">meta · ${profitTarget}%</div>
+        <div class="prop-ring-rest">${profitDone ? 'completado' : `faltan <strong>${(profitTarget - profitPct).toFixed(2)}%</strong>`}</div>
+      </div>`);
+  }
+
+  if (maxDDPct > 0) {
+    ringCards.push(`
+      <div class="prop-ring-card dd">
+        <div class="prop-ring-wrap">
+          ${ring(ddFill, ddColor, ddGlow)}
+          <div class="prop-ring-inner">
+            <div class="prop-ring-pct" style="color:${ddColor}">${Math.min(100,ddFill).toFixed(0)}%</div>
+            <div class="prop-ring-of">consumido</div>
+          </div>
+        </div>
+        <div class="prop-ring-val" style="color:${ddColor}">${m.liveDD.toFixed(2)}%</div>
+        <div class="prop-ring-name">Max DD</div>
+        <div class="prop-ring-lim">límite · ${maxDDPct}% · ${cfg.drawdown_type==='trailing_eod'?'Trailing':'Estático'}</div>
+        <div class="prop-ring-rest">queda <strong>${(maxDDPct - m.liveDD).toFixed(2)}%</strong></div>
+      </div>`);
+  }
+
+  if (dailyDDPct > 0) {
+    ringCards.push(`
+      <div class="prop-ring-card daily">
+        <div class="prop-ring-wrap">
+          ${ring(dailyFill, dailyColor, dailyGlow)}
+          <div class="prop-ring-inner">
+            <div class="prop-ring-pct" style="color:${dailyColor}">${Math.min(100,dailyFill).toFixed(0)}%</div>
+            <div class="prop-ring-of">consumido</div>
+          </div>
+        </div>
+        <div class="prop-ring-val" style="color:${dailyColor}">${m.worstDayPct.toFixed(2)}%</div>
+        <div class="prop-ring-name">DD Diario</div>
+        <div class="prop-ring-lim">límite · ${dailyDDPct}%</div>
+        <div class="prop-ring-rest">queda <strong>${(dailyDDPct - m.worstDayPct).toFixed(2)}%</strong></div>
+      </div>`);
+  }
+
+  if (minDays > 0) {
+    ringCards.push(`
+      <div class="prop-ring-card days">
+        <div class="prop-ring-wrap">
+          ${ring(daysFill, daysDone ? 'var(--gold)' : 'var(--gold)', 'rgba(201,168,76,0.5)')}
+          <div class="prop-ring-inner">
+            <div class="prop-ring-pct" style="color:var(--gold)">${m.tradingDays}</div>
+            <div class="prop-ring-of">días</div>
+          </div>
+        </div>
+        <div class="prop-ring-val" style="color:var(--gold)">${m.tradingDays} / ${minDays}</div>
+        <div class="prop-ring-name">Días activos</div>
+        <div class="prop-ring-lim">${m.tradingDays} / ${minDays} req.</div>
+        <div class="prop-ring-rest">${daysDone ? 'mínimo alcanzado' : `faltan <strong>${minDays - m.tradingDays}</strong>`}</div>
+      </div>`);
+  }
+
+  const cols = ringCards.length <= 3 ? ringCards.length : 4;
 
   el.innerHTML = `
     <div class="prop-card-outer">
-      <!-- HEADER -->
       <div class="prop-header">
         <div class="prop-header-left">
-          <div class="prop-icon">${badgeIcon}</div>
           <div class="prop-title-group">
             <div class="prop-title">Prop Firm Tracker</div>
-            <div class="prop-subtitle">Capital base: $${m.capital.toLocaleString('es-AR')}</div>
+            <div class="prop-subtitle">Capital base · $${m.capital.toLocaleString('es-AR')}</div>
           </div>
           <span class="prop-badge ${badgeClass}">${badgeLabel}</span>
         </div>
@@ -2159,97 +2237,16 @@ function renderPropCard() {
           <span class="dot"></span>${overallLabel}
         </div>
       </div>
-
-      <!-- BODY -->
       <div class="prop-body">
-
         ${alertsHTML}
-
-        <!-- KPI ROW -->
-        <div class="prop-kpi-grid">
-          <div class="prop-kpi-item profit-item">
-            <div class="prop-kpi-label">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-              Ganancia
-            </div>
-            <div class="prop-kpi-val" style="color:${profitValColor}">${m.totalProfit>=0?'+':''}${m.totalProfit.toFixed(2)}</div>
-            <div class="prop-kpi-sub">${profitPct>=0?'+':''}${profitPct.toFixed(2)}% del capital</div>
-          </div>
-          <div class="prop-kpi-item dd-item">
-            <div class="prop-kpi-label">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 6 1 12 7 12"/><path d="M3.51 15a9 9 0 1 0 .49-3.99"/></svg>
-              Drawdown live
-            </div>
-            <div class="prop-kpi-val" style="color:${ddColor}">${m.liveDD.toFixed(2)}%</div>
-            <div class="prop-kpi-sub">Límite: ${maxDDPct}% · ${cfg.drawdown_type==='trailing_eod'?'Trailing EOD':'Estático'}</div>
-          </div>
-          <div class="prop-kpi-item days-item">
-            <div class="prop-kpi-label">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              Días operados
-            </div>
-            <div class="prop-kpi-val" style="color:var(--gold)">${m.tradingDays}${minDays>0?'<span style="font-size:14px;color:var(--muted)"> / '+minDays+'</span>':''}</div>
-            <div class="prop-kpi-sub">${minDays>0&&m.tradingDays>=minDays?'✓ Mínimo alcanzado':minDays>0?`Faltan ${minDays-m.tradingDays} día${minDays-m.tradingDays!==1?'s':''}`:_lang==='es'?'Sin mínimo requerido':'No minimum'}</div>
-          </div>
+        <div class="prop-rings-grid" style="grid-template-columns:repeat(${cols},1fr)">
+          ${ringCards.join('')}
         </div>
-
-        <!-- PROGRESS BARS -->
-        <div class="prop-gauges">
-          ${profitTarget>0?`
-          <div class="prop-gauge">
-            <div class="prop-gauge-header">
-              <div class="prop-gauge-label">🎯 Progreso hacia el objetivo</div>
-              <div class="prop-gauge-values">
-                <span class="prop-gauge-current" style="color:${profitDone?'var(--gold)':'var(--accent)'}">${profitPct.toFixed(2)}%</span>
-                <span class="prop-gauge-sep">/</span>
-                <span class="prop-gauge-limit">${profitTarget}%</span>
-              </div>
-            </div>
-            <div class="prop-track">
-              <div class="prop-fill ${profitFillClass}" style="width:${profitFill}%"></div>
-            </div>
-            <div class="prop-gauge-pct">${profitFill.toFixed(0)}% completado</div>
-          </div>`:``}
-
-          ${maxDDPct>0?`
-          <div class="prop-gauge">
-            <div class="prop-gauge-header">
-              <div class="prop-gauge-label">🛡️ Drawdown máximo consumido</div>
-              <div class="prop-gauge-values">
-                <span class="prop-gauge-current" style="color:${ddColor}">${m.liveDD.toFixed(2)}%</span>
-                <span class="prop-gauge-sep">/</span>
-                <span class="prop-gauge-limit">${maxDDPct}%</span>
-              </div>
-            </div>
-            <div class="prop-track">
-              <div class="prop-fill ${ddClass}" style="width:${ddFill}%"></div>
-            </div>
-            <div class="prop-gauge-pct">${ddFill.toFixed(0)}% del límite usado — ${(maxDDPct-m.liveDD).toFixed(2)}% restante</div>
-          </div>`:``}
-
-          ${dailyDDPct>0?`
-          <div class="prop-gauge">
-            <div class="prop-gauge-header">
-              <div class="prop-gauge-label">📅 Peor día vs. límite diario</div>
-              <div class="prop-gauge-values">
-                <span class="prop-gauge-current" style="color:${dailyColor}">${m.worstDayPct.toFixed(2)}%</span>
-                <span class="prop-gauge-sep">/</span>
-                <span class="prop-gauge-limit">${dailyDDPct}%</span>
-              </div>
-            </div>
-            <div class="prop-track">
-              <div class="prop-fill ${dailyClass}" style="width:${dailyFill}%"></div>
-            </div>
-            <div class="prop-gauge-pct">${dailyFill.toFixed(0)}% del límite diario usado</div>
-          </div>`:``}
-        </div>
-
         ${dayPipsHTML}
       </div>
     </div>
   `;
 }
-
 
 async function loadCapitals() {
   if (!_user) return;
@@ -2316,6 +2313,7 @@ async function confirmCapital() {
     _sessionCapitals[_session] = { ...(_sessionCapitals[_session]||{}), margen };
     closeModal('capitalModal');
     updateMetricsOnly();
+    updateEquityChart();
     renderPropCard();
   } else {
     alert('Error al guardar: ' + await res.text());
@@ -2376,6 +2374,26 @@ function updateMetricsOnly() {
   if (m2s) m2s.textContent = expPct!==null ? expPct+''+(_lang==='es'?'% del margen':'% of margin')+'' : ''+(_lang==='es'?'USD por trade':'USD per trade')+'';
   if (m3s) m3s.textContent = mddPct!==null ? mddPct+''+(_lang==='es'?'% del margen':'% of margin')+'' : ''+(_lang==='es'?'USD desde pico':'USD from peak')+'';
   updateCapitalBtn(tp);
+}
+
+function updateEquityChart() {
+  const eq = _cachedEquity;
+  if (!eq || !eq.length) return;
+  const cap = getCapital();
+  const _margen = cap?.margen || 0;
+  const eqValues = eq.map(e => _margen ? parseFloat((_margen + e.cumulative_profit).toFixed(2)) : e.cumulative_profit);
+  const eqMin = Math.min(...eqValues);
+  const eqMax = Math.max(...eqValues);
+  const eqRange = eqMax - eqMin;
+  const eqPad = Math.max(eqRange * 0.08, eqRange === 0 ? 10 : 1);
+  const eqTickFmt = _margen ? v=>'$'+Math.round(v).toLocaleString('es-AR') : v=>(eqRange<50?'$'+v.toFixed(2):'$'+v.toFixed(0));
+  const chart = Chart.getChart('equityChart');
+  if (!chart) return;
+  chart.data.datasets[0].data = eqValues;
+  chart.options.scales.y.min = parseFloat((eqMin - eqPad).toFixed(2));
+  chart.options.scales.y.max = parseFloat((eqMax + eqPad).toFixed(2));
+  chart.options.scales.y.ticks.callback = eqTickFmt;
+  chart.update();
 }
 
 // ── NOTES: day & trade ──────────────────────────────────────────────────────
@@ -2771,9 +2789,9 @@ async function init(){
     </div>
     <div class="charts-row">
       <div class="card" id="c1"><div class="card-title">${t('sec_equity')}</div><canvas id="equityChart"></canvas></div>
-      <div class="card" id="c2"><div class="card-title">${_lang==='es'?'Resultados por Símbolo':'Results by Symbol'}</div><canvas id="symbolChart"></canvas></div>
     </div>
-    <div class="charts-row2">
+    <div class="charts-row3">
+      <div class="card" id="c2"><div class="card-title">${_lang==='es'?'Resultados por Símbolo':'Results by Symbol'}</div><canvas id="symbolChart"></canvas></div>
       <div class="card" id="c3"><div class="card-title">${_lang==='es'?'Profit por Día':'Profit by Day'}</div><canvas id="dayChart"></canvas></div>
       <div class="card" id="c4"><div class="card-title">${_lang==='es'?'Distribución Win/Loss':'Win/Loss Distribution'}</div><canvas id="donutChart"></canvas></div>
     </div>
@@ -2814,7 +2832,20 @@ async function init(){
   trades.forEach(t=>{const s=t.symbol;if(!symMap[s])symMap[s]=0;symMap[s]+=(t.profit+t.commission+t.swap);});
   const symLabels=Object.keys(symMap).sort((a,b)=>symMap[b]-symMap[a]);
   const symData=symLabels.map(s=>parseFloat(symMap[s].toFixed(2)));
-  new Chart(document.getElementById('equityChart'),{type:'line',data:{labels:eq.map(e=>new Date(e.close_time).toLocaleDateString('es-AR')),datasets:[{data:eq.map(e=>e.cumulative_profit),borderColor:'#16c784',backgroundColor:'rgba(22,199,132,0.08)',borderWidth:2,fill:true,tension:0.3,pointRadius:2,pointBackgroundColor:'#16c784',pointHoverRadius:5}]},options:cOpts()});
+  const _margen = cap?.margen || 0;
+  // Si hay margen configurado, mostrar equity real (margen + profit acumulado). Si no, profit relativo.
+  const eqValues = eq.map(e => _margen ? parseFloat((_margen + e.cumulative_profit).toFixed(2)) : e.cumulative_profit);
+  const eqMin = eqValues.length ? Math.min(...eqValues) : 0;
+  const eqMax = eqValues.length ? Math.max(...eqValues) : 0;
+  const eqRange = eqMax - eqMin;
+  const eqPad = Math.max(eqRange * 0.08, eqRange === 0 ? 10 : 1);
+  const eqOpts = cOpts();
+  eqOpts.scales.y.min = parseFloat((eqMin - eqPad).toFixed(2));
+  eqOpts.scales.y.max = parseFloat((eqMax + eqPad).toFixed(2));
+  // Formato: si los valores son grandes (con margen), usar separador de miles; si son pequeños, decimales
+  const eqTickFmt = _margen ? v=>'$'+Math.round(v).toLocaleString('es-AR') : v=>(eqRange<50?'$'+v.toFixed(2):'$'+v.toFixed(0));
+  eqOpts.scales.y.ticks = {...eqOpts.scales.y.ticks, callback: eqTickFmt};
+  new Chart(document.getElementById('equityChart'),{type:'line',data:{labels:eq.map(e=>new Date(e.close_time).toLocaleDateString('es-AR')),datasets:[{data:eqValues,borderColor:'#16c784',backgroundColor:'rgba(22,199,132,0.08)',borderWidth:2,fill:true,tension:0.3,pointRadius:2,pointBackgroundColor:'#16c784',pointHoverRadius:5}]},options:eqOpts});
   new Chart(document.getElementById('symbolChart'),{type:'bar',data:{labels:symLabels,datasets:[{data:symData,backgroundColor:symData.map(v=>v>=0?'rgba(22,199,132,0.75)':'rgba(234,57,67,0.75)'),borderRadius:6}]},options:cOpts()});
   const byDay={};trades.forEach(t=>{const d=new Date(t.open_time).toLocaleDateString('es-AR');byDay[d]=(byDay[d]||0)+t.profit+t.commission+t.swap;});
   new Chart(document.getElementById('dayChart'),{type:'bar',data:{labels:Object.keys(byDay),datasets:[{data:Object.values(byDay).map(v=>+v.toFixed(2)),backgroundColor:Object.values(byDay).map(v=>v>=0?'rgba(22,199,132,0.7)':'rgba(234,57,67,0.7)'),borderRadius:4}]},options:cOpts()});
