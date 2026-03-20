@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -1408,6 +1409,14 @@ async function confirmDelete(){
 function pV(s){if(s==null||s==='')return null;const c=String(s).trim().replace(/\s/g,'').replace('--','-').replace(',','.');const n=parseFloat(c);return isNaN(n)?null:n;}
 function pD(s){if(!s)return null;const f=String(s).trim().replace(/^(\d{4})\.(\d{2})\.(\d{2})/,'$1-$2-$3');const d=new Date(f.includes('T')||f.includes('Z')?f:f.replace(' ','T')+'Z');if(isNaN(d))return null;// Broker usa UTC+1, restamos 1h para obtener UTC real
 return new Date(d.getTime()-1*60*60*1000).toISOString();}
+// Parser de fechas para TradingView: exporta en UTC-4 (EDT)
+function pD_ET(s){
+  if(!s)return null;
+  const f=String(s).trim();
+  const d=new Date(f.includes('T')||f.includes('Z')?f:f.replace(' ','T')+'Z');
+  if(isNaN(d))return null;
+  return new Date(d.getTime()+4*60*60*1000).toISOString();
+}
 function procRows(rows,sname,fname){
   const PIP={US100:1,XAUUSD:0.1,US500:0.1};
   return rows.map(c=>{
@@ -1553,30 +1562,248 @@ function procRowsNT8(rows, fname) {
   }).filter(r=>r&&r.open_time&&r.close_time);
 }
 
+// ── CSV robust parser: handles quoted fields, BOM, mixed line endings ────
+function parseCSVLine(line, sep) {
+  const fields = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (ch === sep && !inQ) {
+      fields.push(cur.trim()); cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  fields.push(cur.trim());
+  return fields;
+}
+function parseCSV(txt, sep) {
+  // Remove BOM if present
+  const clean = txt.replace(/^\uFEFF/, '');
+  return clean.split(/\r?\n/).filter(l => l.trim()).map(l => parseCSVLine(l, sep));
+}
+function detectSep(firstLine) {
+  const tabs = (firstLine.match(/\t/g)||[]).length;
+  const semis = (firstLine.match(/;/g)||[]).length;
+  const commas = (firstLine.match(/,/g)||[]).length;
+  if (tabs >= semis && tabs >= commas) return '\t';
+  if (semis >= commas) return ';';
+  return ',';
+}
+
+// ── MT4 CSV parser ────────────────────────────────────────────────────────
+// MT4 CSV (Account History) columns:
+// Order | Open Time | Type | Size | Symbol | Price | S/L | T/P | Close Time | Price | Commission | Taxes | Swap | Profit | Comment
+function procRowsMT4CSV(rows, fname) {
+  const PIP = {US100:1,NAS100:1,XAUUSD:0.1,US500:0.1};
+  // find header row
+  const headerIdx = rows.findIndex(r => {
+    const h = r.map(c=>String(c||'').toLowerCase().trim());
+    return (h.includes('order') || h.includes('ticket')) && h.includes('type') && (h.includes('size') || h.includes('volume'));
+  });
+  const dataRows = headerIdx >= 0 ? rows.slice(headerIdx + 1) : rows;
+  return dataRows.map((c, rowIdx) => {
+    const typ = String(c[2]||'').trim().toLowerCase();
+    if (!['buy','sell'].includes(typ)) return null;
+    const posId = parseInt(String(c[0]||'').replace(/\D/g,'')) || (rowIdx+1);
+    const op  = pV(c[5]);
+    const cp  = pV(c[9]);
+    const cm  = pV(c[10])||0;
+    const sw  = pV(c[12])||0;
+    const pr  = pV(c[13])||0;
+    const net = pr + cm + sw;
+    const sym = String(c[4]||'').trim().toUpperCase();
+    const odt = pD(String(c[1]||'').trim());
+    const cdt = pD(String(c[8]||'').trim());
+    if (!odt || !cdt) return null;
+    const dur = Math.round((new Date(cdt) - new Date(odt)) / 60000);
+    const pip = PIP[sym] || 0.0001;
+    const pips = op && cp ? parseFloat(((typ==='buy'?cp-op:op-cp)/pip).toFixed(1)) : null;
+    const vol  = pV(c[3]);
+    return {
+      position_id: posId, symbol: sym, type: typ, open_time: odt, open_price: op,
+      volume: vol, stop_loss: pV(c[6])||null, take_profit: pV(c[7])||null,
+      close_time: cdt, close_price: cp, commission: cm, swap: sw, profit: pr,
+      duration_minutes: dur, pips,
+      result: net>0.01?'win':net<-0.01?'loss':'breakeven',
+      source_file: fname, session_name: '__TEMP__', user_id: _user.id
+    };
+  }).filter(r => r && r.open_time && r.close_time);
+}
+
+
+// ── TradingView Cash History CSV parser ──────────────────────────────────
+// Format: Hora, Saldo anterior, Saldo posterior, PyG realizadas (valor), PyG realizadas (divisa), Acción
+// Rows come newest-first. Reconstructs trades by pairing open/close events.
+// "Commission for: Enter position" rows are treated as the open event when no explicit open row exists.
+function procRowsTradingView(rows, fname) {
+  const PIP = {US100:1, NAS100:1, XAUUSD:0.1, US500:0.1, NQ:0.25, ES:0.25};
+  const hdr = rows[0].map(h => h.toLowerCase().trim());
+  const iTime   = hdr.findIndex(h => h.includes('hora') || h.includes('time'));
+  const iPnl    = hdr.findIndex(h => h.includes('pyg') || h.includes('p&g') || h.includes('p/l') || h.includes('realized'));
+  const iAction = hdr.findIndex(h => h.includes('acci') || h.includes('action'));
+  if (iTime < 0 || iAction < 0) throw new Error('TradingView: no se encontraron columnas esperadas');
+
+  // Parse rows into typed events. Rows are newest-first — reverse to chronological order.
+  const dataRows = rows.slice(1).reverse();
+  const events = dataRows.map((r, idx) => {
+    const action = r[iAction] || '';
+    const ts     = r[iTime]   || '';
+    const pnl    = iPnl >= 0 ? parseFloat(String(r[iPnl]||'0').replace(',','.')) || 0 : 0;
+    const aLow   = action.toLowerCase();
+
+    // Classify row
+    // "Commission for: Enter/Open position" -> treat as open event
+    // "Commission for: Close position"      -> treat as close commission
+    // "Close long/short position"           -> close event with P&L
+    // "Enter position" / "Open position"    -> open event
+    let kind = null;
+    let isOpenCommission = false;
+    if (aLow.includes('commission')) {
+      if (aLow.includes('enter') || (aLow.includes('open') && !aLow.includes('close'))) {
+        kind = 'open'; isOpenCommission = true;
+      } else {
+        kind = 'close_commission';
+      }
+    } else if (aLow.includes('close') && (aLow.includes('long')||aLow.includes('short')||aLow.includes('position'))) {
+      kind = 'close';
+    } else if (aLow.includes('enter')||aLow.includes('open position')) {
+      kind = 'open';
+    }
+    if (!kind) return null;
+
+    const symMatch  = action.match(/symbol\s+(?:[A-Z0-9]+:)?([A-Z0-9._]+)/i);
+    const sym       = symMatch ? symMatch[1].toUpperCase() : 'UNKNOWN';
+    let dir = null;
+    if (aLow.includes('long'))  dir = 'buy';
+    if (aLow.includes('short')) dir = 'sell';
+    const priceMatch = action.match(/at price\s+([\d.,]+)/i);
+    const price      = priceMatch ? parseFloat(priceMatch[1].replace(',','.')) : null;
+    const qtyMatch   = action.match(/for\s+([\d.,]+)\s+units?/i);
+    const qty        = qtyMatch ? parseFloat(qtyMatch[1].replace(',','.')) : null;
+    const avgMatch   = action.match(/position avg price was\s+([\d.,]+)/i);
+    const avgPrice   = avgMatch ? parseFloat(avgMatch[1].replace(',','.')) : null;
+    // Commission value is negative — store as absolute value
+    const commAbs    = isOpenCommission ? Math.abs(pnl) : 0;
+
+    return { kind, ts, sym, dir, price, qty, avgPrice, pnl, commAbs, isOpenCommission };
+  }).filter(Boolean);
+
+  // Match opens to closes chronologically per symbol
+  const openStack = {}; // sym -> [openEvent, ...]
+  const trades = [];
+  const closeCommissions = []; // collected separately
+  let posId = Date.now();
+
+  events.forEach(ev => {
+    const key = ev.sym;
+    if (ev.kind === 'open') {
+      if (!openStack[key]) openStack[key] = [];
+      openStack[key].push(ev);
+    } else if (ev.kind === 'close') {
+      const openEv = openStack[key] && openStack[key].length ? openStack[key].shift() : null;
+      const odt = pD_ET(openEv ? openEv.ts : ev.ts);
+      const cdt = pD_ET(ev.ts);
+      const dir = ev.dir || (openEv ? openEv.dir : null) || 'buy';
+      // Open price: from open event, or fallback to avgPrice on close row
+      const openPrice  = openEv ? openEv.price : (ev.avgPrice || ev.price);
+      const closePrice = ev.price;
+      const vol  = ev.qty || (openEv ? openEv.qty : null) || 1;
+      const pr   = ev.pnl;
+      const dur  = odt && cdt ? Math.round((new Date(cdt) - new Date(odt)) / 60000) : null;
+      const pip  = PIP[key] || 0.0001;
+      const pips = openPrice && closePrice
+        ? parseFloat(((dir==='buy'?closePrice-openPrice:openPrice-closePrice)/pip).toFixed(1)) : null;
+      // Seed commission from open commission event if available
+      const openComm = openEv ? openEv.commAbs : 0;
+      trades.push({
+        position_id: posId++, symbol: key, type: dir,
+        open_time: odt, open_price: openPrice,
+        volume: vol, stop_loss: null, take_profit: null,
+        close_time: cdt, close_price: closePrice,
+        commission: -openComm, // negative = cost; close commission added below
+        swap: 0, profit: pr,
+        duration_minutes: dur, pips,
+        result: pr > 0.01 ? 'win' : pr < -0.01 ? 'loss' : 'breakeven',
+        source_file: fname, session_name: '__TEMP__',
+        user_id: _user ? _user.id : null
+      });
+    } else if (ev.kind === 'close_commission') {
+      closeCommissions.push(ev);
+    }
+  });
+
+  // Apply close commissions to nearest trade by close timestamp (within 5 min)
+  closeCommissions.forEach(ev => {
+    let best = null, bestDiff = Infinity;
+    const evT = new Date(pD_ET(ev.ts)).getTime();
+    trades.forEach(tr => {
+      const diff = Math.abs(evT - new Date(tr.close_time).getTime());
+      if (diff < bestDiff) { bestDiff = diff; best = tr; }
+    });
+    if (best && bestDiff < 5 * 60 * 1000) best.commission -= Math.abs(ev.pnl);
+  });
+
+  return trades.filter(tr => tr.open_time && tr.close_time);
+}
+
 // ── Auto-detect CSV format by headers ────────────────────────────────────
 function detectAndParseCsv(txt, fname) {
-  // MT5 uses semicolon separator with "Time;Position" header
-  if(txt.includes('Time;Position')) {
+  // Remove BOM
+  txt = txt.replace(/^\uFEFF/, '');
+
+  // MT5 semicolon export: look for "Time;Position" anywhere (even mid-file)
+  if (/Time[;\t,]Position/i.test(txt)) {
     const lines = txt.split(/\r?\n/);
-    const hi = lines.findIndex(l=>l.startsWith('Time;Position'));
-    const ei = lines.findIndex(l=>l.startsWith('Orders;'));
-    const rows = lines.slice(hi+1, ei===-1?undefined:ei).filter(l=>l.trim()).map(l=>l.split(';'));
+    const sep = txt.includes('Time;Position') ? ';' : detectSep(lines[0]);
+    const hi = lines.findIndex(l => /^Time[;\t,]Position/i.test(l));
+    const ei = lines.findIndex((l,i) => i > hi && /^Orders[;\t,]/i.test(l));
+    const rows = lines
+      .slice(hi + 1, ei === -1 ? undefined : ei)
+      .filter(l => l.trim())
+      .map(l => parseCSVLine(l, sep));
     return procRows(rows, '__TEMP__', fname);
   }
-  // Detect separator (comma vs semicolon vs tab)
-  const firstLine = txt.split(/\r?\n/)[0];
-  const sep = firstLine.includes('\t') ? '\t' : firstLine.includes(';') ? ';' : ',';
-  const rows = txt.split(/\r?\n/).filter(l=>l.trim()).map(l=>l.split(sep).map(c=>c.replace(/^"|"$/g,'').trim()));
-  if(rows.length<2) throw new Error('Archivo CSV vacío o inválido');
-  const header = rows[0].map(h=>h.toLowerCase());
-  // cTrader: has "opening direction" column
-  if(header.some(h=>h.includes('opening direction'))) return procRowsCTrader(rows, fname);
-  // NinjaTrader 8: has "market pos." column
-  if(header.some(h=>h.includes('market pos'))) return procRowsNT8(rows, fname);
-  // MT5 comma variant
-  if(header.some(h=>h.includes('position'))&&header.some(h=>h.includes('time')))
+
+  // Detect separator from first non-empty line
+  const firstLine = txt.split(/\r?\n/).find(l => l.trim()) || '';
+  const sep = detectSep(firstLine);
+  const rows = parseCSV(txt, sep);
+  if (rows.length < 2) throw new Error('Archivo CSV vacío o inválido');
+
+  const header = rows[0].map(h => h.toLowerCase().replace(/["\s]/g,''));
+
+  // cTrader: "opening direction" column
+  if (header.some(h => h.includes('openingdirection') || h.includes('opening direction')))
+    return procRowsCTrader(rows, fname);
+
+  // NinjaTrader 8: "market pos." column
+  if (header.some(h => h.includes('marketpos')))
+    return procRowsNT8(rows, fname);
+
+  // MT4 CSV: "order" or "ticket" + "type" + ("size" or "volume")
+  if ((header.some(h => h==='order'||h==='ticket')) && header.some(h=>h==='type') &&
+      header.some(h => h==='size'||h==='volume'))
+    return procRowsMT4CSV(rows, fname);
+
+  // TradingView Cash History: hora/time + saldo/balance + acción/action columns
+  if ((header.some(h=>h.includes('hora')||h.includes('time'))) &&
+      (header.some(h=>h.includes('saldo')||h.includes('balance')||h.includes('posterior'))) &&
+      (header.some(h=>h.includes('acci')||h.includes('action'))))
+    return procRowsTradingView(rows, fname);
+
+  // MT5 comma/tab variant: "position" + "time" columns
+  if (header.some(h => h.includes('position')) && header.some(h => h.includes('time')))
     return procRows(rows, '__TEMP__', fname);
-  throw new Error('Formato CSV no reconocido. Formatos soportados: MT5, MT4, cTrader, NinjaTrader 8');
+
+  // Generic fallback: try MT4 CSV structure (order, open time, type, size, symbol…)
+  if (rows[0].length >= 14)
+    return procRowsMT4CSV(rows, fname);
+
+  throw new Error('Formato CSV no reconocido.\nFormatos soportados: MT5, MT4, cTrader, NinjaTrader 8, TradingView.\nVerificá que el archivo tenga encabezados de columna.');
 }
 
 // ── Auto-detect XLSX format by headers ───────────────────────────────────
@@ -1638,7 +1865,11 @@ async function handleImport(ev){
     document.getElementById('sessionNameInput').value=fname.replace(/\.[^.]+$/,'');
     document.getElementById('importInfo').innerHTML='<span class="ok">+ '+nw+' '+t('import_new')+'</span><br>'+(dp?'<span class="dup">! '+dp+' '+t('import_dup')+'</span>':'');
     openModal('importModal');
-  }catch(e){alert('Error: '+e.message);}
+  }catch(e){
+    const isCsv = file && (file.name.endsWith('.csv')||file.name.endsWith('.txt'));
+    const hint  = isCsv ? '\n\nFormatos CSV soportados:\n• MT5 (separador ; o ,)\n• MT4 (Account History CSV)\n• cTrader (CSV con "Opening Direction")\n• NinjaTrader 8 (CSV con "Market pos.")' : '';
+    alert('Error al importar: '+e.message+hint);
+  }
 }
 async function confirmImport(){
   const name=document.getElementById('sessionNameInput').value.trim();
