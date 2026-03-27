@@ -3066,8 +3066,12 @@ async function init(){
   const _margen = cap?.margen || 0;
   // Si hay margen configurado, mostrar equity real (margen + profit acumulado). Si no, profit relativo.
   const eqValues = eq.map(e => _margen ? parseFloat((_margen + e.cumulative_profit).toFixed(2)) : e.cumulative_profit);
-  const eqMin = eqValues.length ? Math.min(...eqValues) : 0;
-  const eqMax = eqValues.length ? Math.max(...eqValues) : 0;
+  // Agregar punto inicial: si hay margen, el primer punto es el capital base (antes de operar). Si no, 0.
+  const eqValuesWithStart = _margen ? [_margen, ...eqValues] : [0, ...eqValues];
+  // Label inicial: "Inicio" antes del primer trade
+  const eqLabelsWithStart = [_lang==='es'?'Inicio':'Start', ...eq.map(e=>new Date(e.close_time).toLocaleDateString('es-AR'))];
+  const eqMin = eqValuesWithStart.length ? Math.min(...eqValuesWithStart) : 0;
+  const eqMax = eqValuesWithStart.length ? Math.max(...eqValuesWithStart) : 0;
   const eqRange = eqMax - eqMin;
   const eqPad = Math.max(eqRange * 0.08, eqRange === 0 ? 10 : 1);
   const eqOpts = cOpts();
@@ -3076,7 +3080,7 @@ async function init(){
   // Formato: si los valores son grandes (con margen), usar separador de miles; si son pequeños, decimales
   const eqTickFmt = _margen ? v=>'$'+Math.round(v).toLocaleString('es-AR') : v=>(eqRange<50?'$'+v.toFixed(2):'$'+v.toFixed(0));
   eqOpts.scales.y.ticks = {...eqOpts.scales.y.ticks, callback: eqTickFmt};
-  new Chart(document.getElementById('equityChart'),{type:'line',data:{labels:eq.map(e=>new Date(e.close_time).toLocaleDateString('es-AR')),datasets:[{data:eqValues,borderColor:'#16c784',backgroundColor:'rgba(22,199,132,0.08)',borderWidth:2,fill:true,tension:0.3,pointRadius:2,pointBackgroundColor:'#16c784',pointHoverRadius:5}]},options:eqOpts});
+  new Chart(document.getElementById('equityChart'),{type:'line',data:{labels:eqLabelsWithStart,datasets:[{data:eqValuesWithStart,borderColor:'#16c784',backgroundColor:'rgba(22,199,132,0.08)',borderWidth:2,fill:true,tension:0.3,pointRadius:2,pointBackgroundColor:'#16c784',pointHoverRadius:5}]},options:eqOpts});
   new Chart(document.getElementById('symbolChart'),{type:'bar',data:{labels:symLabels,datasets:[{data:symData,backgroundColor:symData.map(v=>v>=0?'rgba(22,199,132,0.75)':'rgba(234,57,67,0.75)'),borderRadius:6}]},options:cOpts()});
   const byDay={};trades.forEach(t=>{const d=new Date(t.open_time).toLocaleDateString('es-AR');byDay[d]=(byDay[d]||0)+t.profit+t.commission+t.swap;});
   new Chart(document.getElementById('dayChart'),{type:'bar',data:{labels:Object.keys(byDay),datasets:[{data:Object.values(byDay).map(v=>+v.toFixed(2)),backgroundColor:Object.values(byDay).map(v=>v>=0?'rgba(22,199,132,0.7)':'rgba(234,57,67,0.7)'),borderRadius:4}]},options:cOpts()});
