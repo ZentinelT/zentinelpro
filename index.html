@@ -234,6 +234,27 @@ h1 span{color:var(--gold);}
 .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px;}
 /* ADVANCED METRICS ROW */
 .metrics-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px;}
+/* INSIGHTS PANEL */
+.insights-panel{margin-bottom:20px;display:flex;flex-direction:column;gap:8px;opacity:0;transform:translateY(8px);transition:opacity 0.4s,transform 0.4s;}
+.insights-panel.loaded{opacity:1;transform:translateY(0);}
+.insight-card{display:flex;align-items:flex-start;gap:12px;padding:13px 16px;border-radius:var(--radius);border:1px solid;background:var(--card);box-shadow:var(--shadow);}
+.insight-card.loaded{}
+.insight-card.ins-danger{border-color:rgba(234,57,67,0.3);background:rgba(234,57,67,0.04);}
+.insight-card.ins-warn{border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.04);}
+.insight-card.ins-ok{border-color:rgba(22,199,132,0.3);background:rgba(22,199,132,0.04);}
+.insight-card.ins-info{border-color:rgba(201,168,76,0.25);background:rgba(201,168,76,0.04);}
+body.dark-mode .insight-card.ins-danger{background:rgba(234,57,67,0.07);}
+body.dark-mode .insight-card.ins-warn{background:rgba(245,158,11,0.07);}
+body.dark-mode .insight-card.ins-ok{background:rgba(22,199,132,0.07);}
+body.dark-mode .insight-card.ins-info{background:rgba(201,168,76,0.07);}
+.insight-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+.insight-body{}
+.insight-title{font-size:12px;font-weight:700;letter-spacing:0.1px;margin-bottom:3px;}
+.insight-card.ins-danger .insight-title{color:var(--accent2);}
+.insight-card.ins-warn .insight-title{color:#f59e0b;}
+.insight-card.ins-ok .insight-title{color:var(--accent);}
+.insight-card.ins-info .insight-title{color:var(--gold);}
+.insight-desc{font-size:11px;color:var(--text2);line-height:1.6;}
 /* CAPITAL BADGE */
 .capital-badge{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);padding:7px 13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;transition:all 0.2s;background:var(--surface);box-shadow:var(--shadow);white-space:nowrap;display:inline-flex;align-items:center;line-height:1;}
 .capital-badge:hover{border-color:var(--accent3);color:var(--accent3);}
@@ -564,6 +585,285 @@ body.dark-mode .prop-alert-v2.warning{color:#fbbf24;}
   transform: scale(1.08) rotate(-4deg);
 }
 
+/* ══════════════════════════════════════════════════════
+   INSIGHTS PANEL
+   ══════════════════════════════════════════════════════ */
+.insights-panel {
+  margin-bottom: 20px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.4s, transform 0.4s;
+}
+.insights-panel.loaded { opacity:1; transform:translateY(0); }
+body.dark-mode .insights-panel { border-color: rgba(201,168,76,0.15); }
+
+.insights-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+body.dark-mode .insights-header { border-bottom-color: rgba(201,168,76,0.1); }
+
+.insights-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.insights-title svg { width:14px; height:14px; color: var(--gold); }
+
+.insights-alerts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 16px 20px;
+}
+
+.insight-chip {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 13px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 400;
+  max-width: 380px;
+  border: 1px solid;
+  transition: box-shadow 0.2s;
+}
+.insight-chip:hover { box-shadow: var(--shadow-md); }
+.insight-chip .chip-icon { font-size: 14px; flex-shrink:0; margin-top:1px; }
+.insight-chip .chip-text { flex:1; }
+.insight-chip .chip-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+  display: block;
+}
+
+.insight-chip.danger {
+  background: rgba(234,57,67,0.07);
+  border-color: rgba(234,57,67,0.25);
+  color: var(--text);
+}
+.insight-chip.danger .chip-label { color: var(--accent2); }
+
+.insight-chip.warn {
+  background: rgba(245,158,11,0.07);
+  border-color: rgba(245,158,11,0.25);
+  color: var(--text);
+}
+.insight-chip.warn .chip-label { color: #d97706; }
+
+.insight-chip.ok {
+  background: rgba(22,199,132,0.07);
+  border-color: rgba(22,199,132,0.25);
+  color: var(--text);
+}
+.insight-chip.ok .chip-label { color: var(--accent); }
+
+.insight-chip.info {
+  background: rgba(201,168,76,0.07);
+  border-color: rgba(201,168,76,0.25);
+  color: var(--text);
+}
+.insight-chip.info .chip-label { color: var(--gold); }
+
+/* AI Analysis button & modal */
+.btn-ai {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: var(--gold-soft);
+  font-size: 11px;
+  padding: 6px 12px;
+}
+.btn-ai:hover { background: var(--gold); color: #fff; }
+.btn-ai svg { width:13px; height:13px; }
+
+.ai-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.ai-modal-overlay.open { display: flex; }
+
+.ai-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 620px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+body.dark-mode .ai-modal { border-color: rgba(201,168,76,0.2); }
+
+.ai-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+body.dark-mode .ai-modal-head { border-bottom-color: rgba(201,168,76,0.1); }
+.ai-modal-head h3 { font-size:15px; font-weight:700; letter-spacing:-0.3px; }
+.ai-modal-head p { font-size:11px; color:var(--muted); margin-top:2px; }
+.ai-modal-close {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 8px;
+  width: 30px; height: 30px;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.ai-modal-close:hover { border-color: var(--accent2); color: var(--accent2); }
+
+.ai-modal-key-row {
+  display: flex;
+  gap: 8px;
+  padding: 16px 22px 0;
+  flex-shrink: 0;
+}
+.ai-modal-key-row input {
+  flex: 1;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  transition: border-color 0.2s;
+}
+.ai-modal-key-row input:focus { outline: none; border-color: var(--gold); }
+.ai-modal-key-row input::placeholder { color: var(--muted); }
+.ai-key-hint {
+  font-size: 10px;
+  color: var(--muted);
+  padding: 5px 22px 12px;
+  flex-shrink: 0;
+}
+.ai-key-hint a { color: var(--gold); text-decoration: none; }
+.ai-key-hint a:hover { text-decoration: underline; }
+
+.ai-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 22px 22px;
+}
+
+.ai-response-area {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  min-height: 120px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+body.dark-mode .ai-response-area { border-color: rgba(201,168,76,0.12); }
+
+.ai-response-area.loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.ai-dots span {
+  display:inline-block;
+  width:6px; height:6px;
+  border-radius:50%;
+  background: var(--gold);
+  animation: aiDot 1.2s ease-in-out infinite;
+}
+.ai-dots span:nth-child(2) { animation-delay: 0.2s; }
+.ai-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes aiDot {
+  0%,80%,100% { transform: scale(0.6); opacity:0.4; }
+  40% { transform: scale(1); opacity:1; }
+}
+
+.ai-modal-foot {
+  padding: 12px 22px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+body.dark-mode .ai-modal-foot { border-top-color: rgba(201,168,76,0.1); }
+
+/* section tag inside AI response */
+.ai-section { font-weight:600; color:var(--gold); }
+
+/* POSITION SIZER MODAL */
+.pos-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;padding:20px;}
+.pos-modal-overlay.open{display:flex;}
+.pos-modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:520px;display:flex;flex-direction:column;box-shadow:var(--shadow-md);overflow:hidden;}
+body.dark-mode .pos-modal{border-color:rgba(201,168,76,0.2);}
+.pos-modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 16px;border-bottom:1px solid var(--border);flex-shrink:0;}
+body.dark-mode .pos-modal-head{border-bottom-color:rgba(201,168,76,0.1);}
+.pos-modal-head h3{font-size:15px;font-weight:700;letter-spacing:-0.3px;}
+.pos-modal-head p{font-size:11px;color:var(--muted);margin-top:2px;}
+.pos-modal-close{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;}
+.pos-modal-close:hover{border-color:var(--accent2);color:var(--accent2);}
+.pos-modal-body{padding:20px 22px 22px;display:flex;flex-direction:column;gap:14px;}
+.pos-field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.pos-field{display:flex;flex-direction:column;gap:5px;}
+.pos-field label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);}
+.pos-field input,.pos-field select{background:var(--bg);border:1.5px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;border-radius:var(--radius-sm);transition:border-color 0.2s;width:100%;}
+.pos-field input:focus,.pos-field select:focus{outline:none;border-color:var(--gold);}
+.pos-divider{border:none;border-top:1px solid var(--border);margin:2px 0;}
+body.dark-mode .pos-divider{border-top-color:rgba(201,168,76,0.1);}
+.pos-result-box{background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px 18px;display:flex;flex-direction:column;gap:10px;}
+body.dark-mode .pos-result-box{border-color:rgba(201,168,76,0.2);}
+.pos-result-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);}
+.pos-result-main{font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:var(--gold);letter-spacing:-0.5px;line-height:1;}
+.pos-result-sub{font-size:11px;color:var(--muted);line-height:1.6;}
+.pos-result-warn{font-size:11px;color:var(--accent2);margin-top:2px;}
+.pos-examples{display:flex;flex-direction:column;gap:6px;}
+.pos-example-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.pos-example-cell{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;text-align:center;}
+.pos-example-cell-label{font-size:9px;text-transform:uppercase;letter-spacing:0.3px;color:var(--muted);margin-bottom:3px;}
+.pos-example-cell-val{font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:var(--text);}
+.pos-example-cell-val.gold{color:var(--gold);}
+.pos-section-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:2px;}
+
 </style>
 </head>
 <body>
@@ -813,6 +1113,116 @@ body.dark-mode .prop-alert-v2.warning{color:#fbbf24;}
     <button class="tp-close" onclick="closeTradePanel()">✕ Cerrar</button>
   </div>
   <div class="tp-body" id="tpBody"></div>
+</div>
+
+<!-- POSITION SIZER MODAL -->
+<div class="pos-modal-overlay" id="posModalOverlay">
+  <div class="pos-modal">
+    <div class="pos-modal-head">
+      <div>
+        <h3>📐 Position Sizer — Fixed Dollar Risk</h3>
+        <p>Calculá el tamaño exacto de tu posición según tu riesgo</p>
+      </div>
+      <button class="pos-modal-close" onclick="closePosModal()">×</button>
+    </div>
+    <div class="pos-modal-body">
+
+      <div class="pos-field-row">
+        <div class="pos-field">
+          <label>Capital de la cuenta (USD)</label>
+          <input type="number" id="posCapital" value="50000" min="1" oninput="calcPos()">
+        </div>
+        <div class="pos-field">
+          <label>Riesgo por operación (USD)</label>
+          <input type="number" id="posRisk" value="200" min="1" oninput="calcPos()">
+        </div>
+      </div>
+
+      <div class="pos-field-row">
+        <div class="pos-field">
+          <label>Instrumento</label>
+          <select id="posInstrument" onchange="calcPos()">
+            <option value="MNQ">E-micro NQ (MNQ) — $2/punto</option>
+            <option value="MES">E-micro S&P (MES) — $1.25/punto</option>
+            <option value="MYM">E-micro Dow (MYM) — $0.50/punto</option>
+            <option value="MCL">E-micro Crude (MCL) — $10/punto</option>
+            <option value="MGC">E-micro Gold (MGC) — $1/punto</option>
+            <option value="CUSTOM">Personalizado</option>
+          </select>
+        </div>
+        <div class="pos-field" id="posCustomWrap" style="display:none">
+          <label>Valor por punto (USD)</label>
+          <input type="number" id="posCustomVal" value="2" min="0.01" step="0.01" oninput="calcPos()">
+        </div>
+        <div class="pos-field" id="posUnitWrap">
+          <label>Unidad mínima</label>
+          <select id="posUnitType" onchange="calcPos()">
+            <option value="contract">Contrato (entero)</option>
+            <option value="lot">Lote (decimal)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="pos-field">
+        <label>Stop Loss</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <input type="number" id="posStopPts" placeholder="Puntos (ej: 50)" min="0" oninput="calcPos()" style="background:var(--bg);border:1.5px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;border-radius:var(--radius-sm);width:100%">
+          <input type="number" id="posStopPrice" placeholder="Precio exacto (ej: 19850)" min="0" step="0.25" oninput="calcPos()" style="background:var(--bg);border:1.5px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;border-radius:var(--radius-sm);width:100%">
+        </div>
+        <span style="font-size:10px;color:var(--muted);margin-top:3px">Ingresá puntos O precio. El precio requiere también el precio de entrada.</span>
+      </div>
+
+      <div class="pos-field" id="posEntryWrap" style="display:none">
+        <label>Precio de entrada</label>
+        <input type="number" id="posEntry" placeholder="Ej: 19900" min="0" step="0.25" oninput="calcPos()" style="background:var(--bg);border:1.5px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;border-radius:var(--radius-sm);width:100%">
+      </div>
+
+      <hr class="pos-divider">
+
+      <!-- RESULTADO -->
+      <div class="pos-result-box">
+        <div class="pos-result-label">Tamaño de posición</div>
+        <div class="pos-result-main" id="posResultMain">—</div>
+        <div class="pos-result-sub" id="posResultSub"></div>
+        <div class="pos-result-warn" id="posResultWarn"></div>
+      </div>
+
+      <!-- TABLA DE EJEMPLOS -->
+      <div>
+        <div class="pos-section-title">Tabla comparativa con mismo riesgo</div>
+        <div class="pos-examples" id="posExamples"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- AI ANALYSIS MODAL -->
+<div class="ai-modal-overlay" id="aiModalOverlay">
+  <div class="ai-modal">
+    <div class="ai-modal-head">
+      <div>
+        <h3>✦ Análisis IA de tu Trading</h3>
+        <p>Claude analiza tus métricas y te da feedback accionable</p>
+      </div>
+      <button class="ai-modal-close" onclick="closeAiModal()">×</button>
+    </div>
+    <div class="ai-modal-key-row">
+      <input type="password" id="aiApiKey" placeholder="sk-ant-api03-... (tu API key de Anthropic)" autocomplete="off">
+      <button class="btn btn-primary" onclick="runAiAnalysis()" id="aiRunBtn" style="flex-shrink:0">Analizar</button>
+    </div>
+    <div class="ai-key-hint">
+      Tu key no se guarda. Obtenela en <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>
+    </div>
+    <div class="ai-modal-body">
+      <div class="ai-response-area" id="aiResponseArea">
+        El análisis aparecerá aquí. Ingresá tu API key y hacé clic en <strong>Analizar</strong>.
+      </div>
+    </div>
+    <div class="ai-modal-foot">
+      <button class="btn btn-muted" onclick="closeAiModal()">Cerrar</button>
+    </div>
+  </div>
 </div>
 
 <!-- LIGHTBOX -->
@@ -3001,8 +3411,198 @@ async function init(){
   const expPct  = cap?.margen ? ((adv.exp/cap.margen)*100).toFixed(3) : null;
   updateCapitalBtn(tp);
 
-  // Destruir charts existentes ANTES de reemplazar el DOM
+  // ── INSIGHTS ENGINE ──────────────────────────────────────────────
+  function buildInsights(){
+    const pfNum = parseFloat(adv.pf);
+    const wrNum = parseFloat(wr);
+    const mddNum = parseFloat(adv.mdd);
+    const expNum = parseFloat(adv.exp);
+    const mddPctNum = mddPct ? parseFloat(mddPct) : null;
+    const retPctNum = retPct ? parseFloat(retPct) : null;
+    const totalTrades = trades.length;
+    const es = _lang === 'es';
+    const ins = [];
+
+    // Iconos SVG unificados
+    const iconRed   = `<svg width="12" height="12" viewBox="0 0 24 24" fill="#ea3943" stroke="none"><polygon points="5 3 19 12 5 21"/></svg>`;
+    const iconGreen = `<svg width="12" height="12" viewBox="0 0 24 24" fill="#16c784" stroke="none"><polygon points="5 3 19 12 5 21"/></svg>`;
+    function add(type, title, desc){
+      const icon = (type==='ok'||type==='info') ? iconGreen : iconRed;
+      ins.push({type,icon,title,desc});
+    }
+
+    // 1. PROFIT FACTOR
+    if(!isNaN(pfNum)){
+      if(pfNum < 1){
+        add('danger',
+          es ? 'Sistema en pérdida neta' : 'System in net loss',
+          es ? `Tu Profit Factor es ${adv.pf}: el sistema pierde más de lo que gana en bruto. Revisá el ratio riesgo/beneficio de tus entradas o reducí el tamaño de pérdida promedio.`
+             : `Your Profit Factor is ${adv.pf}: the system is losing more than it wins gross. Review your risk/reward ratio or reduce average loss size.`);
+      } else if(pfNum < 1.2){
+        add('warn',
+          es ? 'Profit Factor marginal' : 'Marginal Profit Factor',
+          es ? `PF de ${adv.pf} es muy ajustado. Un mercado ligeramente adverso puede volverlo negativo. Apuntá a superar 1.5 para tener margen de seguridad real.`
+             : `PF of ${adv.pf} is very tight. A slightly adverse market can turn it negative. Aim for 1.5+ for real safety margin.`);
+      } else if(pfNum < 1.5){
+        add('info',
+          es ? 'Profit Factor aceptable — margen ajustado' : 'Acceptable Profit Factor — tight margin',
+          es ? `PF de ${adv.pf}: el sistema genera ganancia, pero con poco margen. Una racha adversa puede erosionarlo. Trabajá en mejorar el RR promedio o reducir comisiones.`
+             : `PF of ${adv.pf}: system is profitable but with little margin. An adverse streak can erode it. Work on improving average RR or reducing commissions.`);
+      } else if(pfNum < 2){
+        add('ok',
+          es ? 'Profit Factor saludable' : 'Healthy Profit Factor',
+          es ? `PF de ${adv.pf}: buen margen entre ganancias y pérdidas brutas. El sistema tiene solidez estadística.`
+             : `PF of ${adv.pf}: good margin between gross wins and losses. The system has statistical solidity.`);
+      } else {
+        add('ok',
+          es ? 'Profit Factor sólido' : 'Strong Profit Factor',
+          es ? `PF de ${adv.pf}: excelente relación ganancia/pérdida bruta. El sistema tiene margen amplio para absorber rachas adversas.`
+             : `PF of ${adv.pf}: excellent gross win/loss ratio. The system has ample room to absorb drawdown streaks.`);
+      }
+    }
+
+    // 2. WIN RATE + EXPECTANCY — todas las combinaciones relevantes
+    if(wrNum > 65 && expNum < 0){
+      add('danger',
+        es ? 'Trampa del Win Rate alto' : 'High Win Rate trap',
+        es ? `Ganás el ${wr}% de tus trades pero la expectancy es negativa (${fmt(expNum)}). Tus pérdidas son desproporcionadamente grandes vs tus ganancias. Revisá dónde cortás las pérdidas.`
+           : `You win ${wr}% of trades but expectancy is negative (${fmt(expNum)}). Your losses are disproportionately large vs gains. Review where you cut losses.`);
+    } else if(wrNum >= 55 && expNum > 0 && pfNum < 1.5){
+      add('info',
+        es ? 'Win Rate bueno, pero ganancias pequeñas' : 'Good Win Rate, but small gains',
+        es ? `Ganás el ${wr}% de las operaciones, pero tu PF de ${adv.pf} indica que las ganancias individuales son chicas vs las pérdidas. Intentá dejar correr más los trades ganadores.`
+           : `You win ${wr}% of trades, but your PF of ${adv.pf} shows individual gains are small vs losses. Try letting winning trades run more.`);
+    } else if(wrNum < 45 && expNum > 0){
+      add('info',
+        es ? 'Sistema de baja frecuencia de aciertos' : 'Low win-rate system',
+        es ? `Solo ganás el ${wr}% pero tu expectancy es positiva (${fmt(expNum)}). Es un sistema válido si mantenés la disciplina — las rachas de pérdidas van a ser frecuentes.`
+           : `You only win ${wr}% but expectancy is positive (${fmt(expNum)}). Valid system if you maintain discipline — loss streaks will be frequent.`);
+    } else if(wrNum < 40 && expNum <= 0){
+      add('danger',
+        es ? 'Win Rate y Expectancy negativos' : 'Win Rate and Expectancy both negative',
+        es ? `Ganás poco (${wr}%) y cuando perdés, perdés más. El sistema no tiene edge actualmente. Pausá el live y revisá la estrategia en demo.`
+           : `Low win rate (${wr}%) and losses exceed wins in size. No edge currently. Pause live trading and review strategy on demo.`);
+    } else if(expNum > 0 && pfNum >= 1.5){
+      add('ok',
+        es ? 'Expectancy positiva y consistente' : 'Positive and consistent Expectancy',
+        es ? `Tu sistema genera ${fmt(expNum)} USD de expectativa por operación con un WR del ${wr}%. Las métricas se refuerzan mutuamente — hay edge real.`
+           : `Your system generates ${fmt(expNum)} USD expected value per trade with ${wr}% WR. Metrics reinforce each other — there's real edge.`);
+    }
+
+    // 3. DRAWDOWN
+    if(mddPctNum !== null){
+      if(mddPctNum > 10){
+        add('danger',
+          es ? 'Drawdown máximo crítico' : 'Critical Max Drawdown',
+          es ? `Bajaste un ${mddPct}% del margen en tu peor punto. Esto supera los límites estándar de prop firms (5-8%) y es señal de riesgo excesivo por trade. Reducí el sizing.`
+             : `Max drawdown reached ${mddPct}% of margin. This exceeds standard prop firm limits (5-8%) and signals excessive risk per trade. Reduce position sizing.`);
+      } else if(mddPctNum > 5){
+        add('warn',
+          es ? 'Drawdown elevado — zona de alerta' : 'Elevated drawdown — alert zone',
+          es ? `Tu drawdown máximo fue del ${mddPct}% del margen. Estás en zona de riesgo para una cuenta fondeable. Considerá reducir el riesgo por operación.`
+             : `Max drawdown was ${mddPct}% of margin. You're in risk zone for funded accounts. Consider reducing risk per trade.`);
+      } else {
+        add('ok',
+          es ? 'Drawdown bajo control' : 'Drawdown under control',
+          es ? `Drawdown máximo del ${mddPct}% del margen: dentro de rangos saludables. Seguí monitoreando que no escale.`
+             : `Max drawdown of ${mddPct}% of margin: within healthy range. Keep monitoring it doesn't escalate.`);
+      }
+    } else {
+      // Sin margen configurado, usamos valor absoluto
+      if(mddNum > 500){
+        add('warn',
+          es ? 'Drawdown notable detectado' : 'Notable drawdown detected',
+          es ? `Tu drawdown máximo fue de ${fmt(mddNum)}. Configurá tu capital inicial para ver el impacto en porcentaje.`
+             : `Max drawdown was ${fmt(mddNum)}. Set your initial capital to see the percentage impact.`);
+      }
+    }
+
+    // 4. RACHA NEGATIVA
+    if(adv.worstStreak >= 7){
+      add('danger',
+        es ? 'Racha de pérdidas severa' : 'Severe loss streak',
+        es ? `Tuviste ${adv.worstStreak} pérdidas consecutivas. Una racha así puede destruir el margen si el sizing es fijo. Revisá si tenés una regla de pausa por racha negativa.`
+           : `You had ${adv.worstStreak} consecutive losses. A streak like this can destroy margin with fixed sizing. Check if you have a drawdown pause rule.`);
+    } else if(adv.worstStreak >= 4){
+      add('warn',
+        es ? 'Racha negativa considerable' : 'Considerable loss streak',
+        es ? `Racha máxima de ${adv.worstStreak} pérdidas seguidas. Normal en sistemas con WR bajo, pero tené un plan de pausa si se repite.`
+           : `Max streak of ${adv.worstStreak} consecutive losses. Normal in low WR systems, but have a pause plan if it repeats.`);
+    }
+
+    // 5. VOLUMEN DE TRADES (confianza estadística)
+    if(totalTrades < 20){
+      add('info',
+        es ? 'Muestra insuficiente para conclusiones' : 'Insufficient sample for conclusions',
+        es ? `Solo tenés ${totalTrades} trades. Necesitás mínimo 50-100 para que las métricas sean estadísticamente relevantes. No cambies la estrategia basándote en estos datos todavía.`
+           : `You only have ${totalTrades} trades. You need at least 50-100 for metrics to be statistically meaningful. Don't change strategy based on this data yet.`);
+    } else if(totalTrades < 50){
+      add('info',
+        es ? 'Muestra pequeña — seguí acumulando datos' : 'Small sample — keep accumulating data',
+        es ? `Con ${totalTrades} trades las métricas empiezan a tener valor pero todavía son volátiles. Las conclusiones se van a estabilizar pasando los 100 trades.`
+           : `With ${totalTrades} trades the metrics start to have value but are still volatile. Conclusions will stabilize past 100 trades.`);
+    }
+
+    // 6. RETORNO total
+    if(retPctNum !== null){
+      if(retPctNum < 0){
+        add('danger',
+          es ? 'Cuenta en terreno negativo' : 'Account in negative territory',
+          es ? `Llevás un retorno de ${retPct}% sobre el margen. Si es una cuenta fondeable, revisá las reglas de pérdida máxima de la prop firm.`
+             : `You're at ${retPct}% return on margin. If it's a funded account, review the prop firm's max loss rules.`);
+      } else if(retPctNum > 20){
+        add('ok',
+          es ? 'Retorno excepcional' : 'Exceptional return',
+          es ? `${retPct}% de retorno sobre el margen. Muy sólido. Si es una prop firm, asegurate de no arriesgar los profits acumulados con sizing agresivo.`
+             : `${retPct}% return on margin. Very solid. If it's a prop firm, don't risk accumulated profits with aggressive sizing.`);
+      } else if(retPctNum > 0 && retPctNum <= 5){
+        add('info',
+          es ? 'Retorno positivo, margen para crecer' : 'Positive return, room to grow',
+          es ? `Retorno de ${retPct}% sobre el margen. El sistema es rentable. El objetivo es mantener la consistencia y escalar el sizing gradualmente cuando el edge esté probado.`
+             : `${retPct}% return on margin. System is profitable. Focus on consistency and scale sizing gradually as edge is confirmed.`);
+      }
+    }
+
+    // 7. AVG TRADE vs comisiones
+    const avgNum = parseFloat(avg);
+    if(avgNum > 0 && avgNum < 5){
+      add('warn',
+        es ? 'Promedio por trade muy bajo' : 'Very low average trade',
+        es ? `Tu ganancia promedio es de ${fmt(avgNum)} USD por operación. Las comisiones y el spread pueden estar consumiendo gran parte del edge. Revisá si el sizing es suficiente para que sea viable.`
+           : `Your average gain is ${fmt(avgNum)} USD per trade. Commissions and spread may be consuming most of the edge. Check if sizing is sufficient to make it viable.`);
+    } else if(avgNum < 0){
+      add('danger',
+        es ? 'Promedio por trade negativo' : 'Negative average trade',
+        es ? `En promedio perdés ${fmt(Math.abs(avgNum))} USD por operación incluyendo costos. El sistema no es rentable en su estado actual.`
+           : `On average you lose ${fmt(Math.abs(avgNum))} USD per trade including costs. The system is not profitable in its current state.`);
+    }
+
+    // 8. CATCH-ALL: si hay pocos o ningún alerta, confirmar que todo está en orden
+    const hasDanger = ins.some(i=>i.type==='danger');
+    const hasWarn = ins.some(i=>i.type==='warn');
+    if(!hasDanger && !hasWarn && !isNaN(pfNum) && pfNum >= 1 && expNum >= 0){
+      add('ok',
+        es ? 'Sistema dentro de parámetros saludables' : 'System within healthy parameters',
+        es ? `No se detectaron alertas críticas. PF de ${adv.pf}, WR de ${wr}% y expectancy positiva (${fmt(expNum)}) apuntan a un sistema con edge. Seguí registrando operaciones para confirmar la robustez estadística.`
+           : `No critical alerts detected. PF of ${adv.pf}, WR of ${wr}% and positive expectancy (${fmt(expNum)}) point to a system with edge. Keep logging trades to confirm statistical robustness.`);
+    }
+
+    return ins;
+  }
+  const insights = buildInsights();
+  window._lastInsightsData = { tp, wr: parseFloat(wr), avg: parseFloat(avg), adv, cap, mddPct, retPct, expPct, tradesCount: trades.length };
+  // ── FIN INSIGHTS ENGINE ──────────────────────────────────────────
   ['equityChart','symbolChart','dayChart','donutChart'].forEach(id=>{const c=Chart.getChart(id);if(c)c.destroy();});
+
+  // Build insights HTML for injection
+  const insightsHTML = insights.length ? insights.map((ins,i)=>`
+    <div class="insight-card ins-${ins.type}" id="ins${i}">
+      <div class="insight-icon" style="display:flex;align-items:center;flex-shrink:0;margin-top:1px">${ins.icon}</div>
+      <div class="insight-body">
+        <div class="insight-title">${ins.title}</div>
+        <div class="insight-desc">${ins.desc}</div>
+      </div>
+    </div>`).join('') : `<div style="font-size:12px;color:var(--muted);padding:4px 0">${_lang==='es'?'Sin alertas activas — métricas en rango normal.':'No active alerts — metrics within normal range.'}</div>`;
 
   document.getElementById('app').innerHTML=`
     <div class="kpi-row">
@@ -3032,7 +3632,20 @@ async function init(){
       <div id="hourHeatmap"></div>
     </div>
     <div class="card" id="c6" style="margin-bottom:24px">
-      <div class="card-title">${_lang==='es'?'Calendario de Trading':'Trading Calendar'}</div>
+      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>${_lang==='es'?'Calendario de Trading':'Trading Calendar'}</span>
+        <button onclick="openPosModal()" style="font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;padding:5px 12px;border:1.5px solid var(--gold);color:var(--gold);background:var(--gold-soft);border-radius:var(--radius-sm);cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:5px;" onmouseover="this.style.background='var(--gold)';this.style.color='#fff'" onmouseout="this.style.background='var(--gold-soft)';this.style.color='var(--gold)'">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="12" y2="16"/></svg>
+          Position Sizer
+        </button>
+      </div>
+      <div class="insights-panel" id="insightsPanel" style="margin-bottom:20px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted)">${_lang==='es'?'Diagnóstico automático':'Automatic Diagnosis'}</span>
+        </div>
+        ${insightsHTML}
+      </div>
       <div class="cal-header"><div class="cal-month-label" id="calMonthLabel">---</div><div class="cal-nav-btns"><button class="cal-nav-btn" onclick="calPrev()">${_lang==='es'?'&#8592; Anterior':'&#8592; Prev'}</button><button class="cal-nav-btn" onclick="calNext()">${_lang==='es'?'Siguiente &#8594;':'Next &#8594;'}</button></div></div>
       <div class="cal-month-stats" id="calStats"></div>
       <div id="calGrid"></div>
@@ -3055,7 +3668,7 @@ async function init(){
   _page = 1;
   renderTradesPage();
 
-  setTimeout(()=>['k1','k2','k3','k4','m1','m2','m3','m4','m5','c1','c2','c3','c4','c7','c6','c5'].forEach((id,i)=>setTimeout(()=>document.getElementById(id)?.classList.add('loaded'),i*60)),50);
+  setTimeout(()=>['k1','k2','k3','k4','m1','m2','m3','m4','m5','c1','c2','c3','c4','c7','c6','insightsPanel','c5'].forEach((id,i)=>setTimeout(()=>document.getElementById(id)?.classList.add('loaded'),i*60)),50);
 
   const eq=Array.isArray(equity)?equity:[];
   // Symbol chart: calculado directo desde trades
@@ -3088,6 +3701,218 @@ async function init(){
   renderCal();
   renderHourlyHeatmap(trades);
 }
+
+// ══════════════════════════════════════════════════════
+// AI ANALYSIS MODAL
+// ══════════════════════════════════════════════════════
+function openAiModal() {
+  document.getElementById('aiModalOverlay').classList.add('open');
+}
+function closeAiModal() {
+  document.getElementById('aiModalOverlay').classList.remove('open');
+}
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeAiModal(); });
+document.getElementById('aiModalOverlay').addEventListener('click', function(e){ if(e.target===this) closeAiModal(); });
+
+async function runAiAnalysis() {
+  const key = document.getElementById('aiApiKey').value.trim();
+  if (!key) { alert('Ingresá tu API key de Anthropic primero.'); return; }
+  const d = window._lastInsightsData;
+  if (!d) { alert('Primero cargá datos en el dashboard.'); return; }
+
+  const area = document.getElementById('aiResponseArea');
+  const btn  = document.getElementById('aiRunBtn');
+  btn.disabled = true;
+  area.className = 'ai-response-area loading';
+  area.innerHTML = '<div class="ai-dots"><span></span><span></span><span></span></div>&nbsp; Analizando tus métricas...';
+
+  const prompt = `Eres un coach de trading profesional. Analizá estas métricas reales de un trader y dá un diagnóstico claro, honesto y accionable. No uses lenguaje genérico ni relleno. Sé directo sobre problemas y fortalezas.
+
+MÉTRICAS DEL TRADER:
+- Profit total: ${fmt(d.tp)} USD ${d.retPct !== null ? `(${d.retPct}% sobre el margen)` : ''}
+- Win Rate: ${d.wr}%
+- Total de operaciones: ${d.tradesCount}
+- Promedio por trade: ${fmt(d.avg)} USD
+- Profit Factor: ${d.adv.pf}
+- Expectancy: ${fmt(d.adv.exp)} USD por trade${d.expPct ? ` (${d.expPct}% del margen)` : ''}
+- Max Drawdown: ${fmt(d.adv.mdd)} USD${d.mddPct ? ` (${d.mddPct}% del margen)` : ''}
+- Mejor racha ganadora: ${d.adv.bestStreak} wins consecutivos
+- Peor racha perdedora: ${d.adv.worstStreak} losses consecutivos
+
+Respondé en español con estas 4 secciones claramente separadas:
+1. DIAGNÓSTICO GENERAL (2-3 oraciones sobre el estado del sistema)
+2. PROBLEMAS DETECTADOS (lista con los puntos críticos a corregir, si los hay)
+3. FORTALEZAS (lo que está funcionando bien)
+4. ACCIONES CONCRETAS (3 a 5 cosas específicas que puede hacer esta semana)
+
+Sé honesto aunque sea incómodo. No uses frases vacías como "sigue así" o "continúa el buen trabajo".`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(()=>({}));
+      throw new Error(err?.error?.message || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const text = data.content?.find(b=>b.type==='text')?.text || 'Sin respuesta.';
+
+    // Highlight section headers
+    const formatted = text
+      .replace(/\b(DIAGNÓSTICO GENERAL|PROBLEMAS DETECTADOS|FORTALEZAS|ACCIONES CONCRETAS)\b/g,
+               '<span class="ai-section">$1</span>');
+
+    area.className = 'ai-response-area';
+    area.innerHTML = formatted;
+  } catch(err) {
+    area.className = 'ai-response-area';
+    area.innerHTML = `<span style="color:var(--accent2)">Error: ${err.message}</span>\n\nVerificá que tu API key sea válida y que tengas crédito disponible en console.anthropic.com`;
+  }
+  btn.disabled = false;
+}
+
+// ══════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════
+// POSITION SIZER
+// ══════════════════════════════════════════════════════
+
+const POS_INSTRUMENTS = {
+  MNQ:    { label: 'E-micro NQ (MNQ)',   valPerPt: 2,     unit: 'contract', minUnit: 1,    stepUnit: 1 },
+  MES:    { label: 'E-micro S&P (MES)',  valPerPt: 1.25,  unit: 'contract', minUnit: 1,    stepUnit: 1 },
+  MYM:    { label: 'E-micro Dow (MYM)',  valPerPt: 0.50,  unit: 'contract', minUnit: 1,    stepUnit: 1 },
+  MCL:    { label: 'E-micro Crude (MCL)',valPerPt: 10,    unit: 'contract', minUnit: 1,    stepUnit: 1 },
+  MGC:    { label: 'E-micro Gold (MGC)', valPerPt: 1,     unit: 'contract', minUnit: 1,    stepUnit: 1 },
+  CUSTOM: { label: 'Personalizado',      valPerPt: null,  unit: 'lot',      minUnit: 0.01, stepUnit: 0.01 },
+};
+
+function openPosModal() {
+  document.getElementById('posModalOverlay').classList.add('open');
+  calcPos();
+}
+function closePosModal() {
+  document.getElementById('posModalOverlay').classList.remove('open');
+}
+document.addEventListener('keydown', e => { if(e.key==='Escape') closePosModal(); });
+document.getElementById('posModalOverlay').addEventListener('click', function(e){ if(e.target===this) closePosModal(); });
+
+function calcPos() {
+  const capital    = parseFloat(document.getElementById('posCapital').value) || 0;
+  const riskUSD    = parseFloat(document.getElementById('posRisk').value) || 0;
+  const instrKey   = document.getElementById('posInstrument').value;
+  const instrData  = POS_INSTRUMENTS[instrKey];
+  const unitType   = document.getElementById('posUnitType').value;
+  const stopPts    = parseFloat(document.getElementById('posStopPts').value) || 0;
+  const stopPrice  = parseFloat(document.getElementById('posStopPrice').value) || 0;
+  const entryPrice = parseFloat(document.getElementById('posEntry').value) || 0;
+
+  // Show/hide custom val
+  document.getElementById('posCustomWrap').style.display = instrKey === 'CUSTOM' ? '' : 'none';
+  document.getElementById('posUnitWrap').style.display = instrKey === 'CUSTOM' ? '' : 'none';
+
+  // Show/hide entry price field
+  const needEntry = stopPrice > 0 && stopPts === 0;
+  document.getElementById('posEntryWrap').style.display = needEntry ? '' : 'none';
+
+  // Value per point
+  let valPerPt = instrData.valPerPt;
+  if(instrKey === 'CUSTOM') valPerPt = parseFloat(document.getElementById('posCustomVal').value) || 0;
+
+  // Compute SL in points
+  let slPts = 0;
+  if(stopPts > 0) {
+    slPts = stopPts;
+  } else if(stopPrice > 0 && entryPrice > 0) {
+    slPts = Math.abs(entryPrice - stopPrice);
+  }
+
+  const mainEl = document.getElementById('posResultMain');
+  const subEl  = document.getElementById('posResultSub');
+  const warnEl = document.getElementById('posResultWarn');
+  const exEl   = document.getElementById('posExamples');
+
+  if(!valPerPt || !slPts || !riskUSD) {
+    mainEl.textContent = '—';
+    subEl.textContent = 'Completá los campos para ver el resultado.';
+    warnEl.textContent = '';
+    exEl.innerHTML = '';
+    return;
+  }
+
+  const riskPerUnit = slPts * valPerPt;
+  let rawSize = riskUSD / riskPerUnit;
+  let displaySize, unit, warn = '';
+
+  const isContract = (instrKey !== 'CUSTOM' && instrData.unit === 'contract') || (instrKey === 'CUSTOM' && unitType === 'contract');
+
+  if(isContract) {
+    const floor = Math.floor(rawSize);
+    displaySize = floor;
+    unit = floor === 1 ? 'contrato' : 'contratos';
+    const realRisk = floor * riskPerUnit;
+    const diff = riskUSD - realRisk;
+    if(floor === 0) {
+      warn = `⚠ Stop demasiado amplio — necesitás fraccionar o usar un micro más pequeño.`;
+    } else if(diff > 0.01) {
+      warn = `Riesgo real: $${realRisk.toFixed(2)} (diferencia de $${diff.toFixed(2)} por redondeo a entero)`;
+    }
+  } else {
+    displaySize = Math.floor(rawSize * 100) / 100;
+    unit = 'lotes';
+  }
+
+  const riskPct = capital > 0 ? ((riskUSD / capital) * 100).toFixed(2) : '—';
+
+  mainEl.textContent = displaySize > 0 ? `${displaySize} ${unit}` : '0 — ajustá el stop';
+  subEl.innerHTML = `Riesgo: <strong>$${riskUSD.toFixed(2)}</strong> &nbsp;·&nbsp; ${riskPct}% del capital &nbsp;·&nbsp; SL: ${slPts} pts &nbsp;·&nbsp; $${valPerPt}/pt`;
+  warnEl.textContent = warn;
+
+  // Comparison table: 3 scenarios
+  const scenarios = [
+    { label: 'Stop corto', pts: Math.round(slPts * 0.5) },
+    { label: 'Stop actual', pts: slPts },
+    { label: 'Stop amplio', pts: Math.round(slPts * 2) },
+  ];
+  let html = `<div class="pos-example-row" style="margin-bottom:2px">
+    <div class="pos-example-cell"><div class="pos-example-cell-label">Stop Loss</div></div>
+    <div class="pos-example-cell"><div class="pos-example-cell-label">Tamaño</div></div>
+    <div class="pos-example-cell"><div class="pos-example-cell-label">Riesgo real</div></div>
+  </div>`;
+  scenarios.forEach(sc => {
+    const r = riskUSD / (sc.pts * valPerPt);
+    let sz, realR;
+    if(isContract) {
+      sz = Math.floor(r);
+      realR = sz * sc.pts * valPerPt;
+    } else {
+      sz = Math.floor(r * 100) / 100;
+      realR = sz * sc.pts * valPerPt;
+    }
+    const isCurrent = sc.pts === slPts;
+    html += `<div class="pos-example-row">
+      <div class="pos-example-cell" style="${isCurrent?'border-color:var(--gold)':''}"><div class="pos-example-cell-val">${sc.pts} pts</div><div class="pos-example-cell-label">${sc.label}</div></div>
+      <div class="pos-example-cell" style="${isCurrent?'border-color:var(--gold)':''}"><div class="pos-example-cell-val gold">${sz} ${isContract?(sz===1?'cto':'ctos'):'lts'}</div></div>
+      <div class="pos-example-cell" style="${isCurrent?'border-color:var(--gold)':''}"><div class="pos-example-cell-val">$${realR.toFixed(2)}</div></div>
+    </div>`;
+  });
+  exEl.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════════
 
 function setText(sel, val){
   // sel can be an id#selector or a CSS selector
