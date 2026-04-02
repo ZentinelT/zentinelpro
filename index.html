@@ -864,6 +864,58 @@ body.dark-mode .pos-result-box{border-color:rgba(201,168,76,0.2);}
 .pos-example-cell-val.gold{color:var(--gold);}
 .pos-section-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:2px;}
 
+/* ── COLUMN MAPPER MODAL ─────────────────────────────────────────── */
+.mapper-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);backdrop-filter:blur(5px);z-index:300;align-items:center;justify-content:center;padding:20px;}
+.mapper-overlay.open{display:flex;}
+.mapper-modal{background:var(--surface);border:1px solid var(--border);border-radius:18px;width:100%;max-width:760px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,0.35);overflow:hidden;}
+body.dark-mode .mapper-modal{border-color:rgba(201,168,76,0.25);}
+.mapper-head{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-shrink:0;}
+body.dark-mode .mapper-head{border-bottom-color:rgba(201,168,76,0.12);}
+.mapper-head-text h3{font-size:15px;font-weight:700;letter-spacing:-0.3px;margin-bottom:3px;}
+.mapper-head-text p{font-size:12px;color:var(--muted);line-height:1.5;}
+.mapper-close{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;}
+.mapper-close:hover{border-color:var(--accent2);color:var(--accent2);}
+
+/* Diagnostic banner */
+.mapper-diag{margin:16px 24px 0;padding:12px 14px;border-radius:var(--radius-sm);background:rgba(234,57,67,0.07);border:1px solid rgba(234,57,67,0.25);font-size:12px;color:var(--text2);line-height:1.7;display:none;}
+.mapper-diag.show{display:block;}
+.mapper-diag strong{color:var(--accent2);}
+.mapper-diag code{font-family:'DM Mono',monospace;font-size:10px;background:rgba(234,57,67,0.12);padding:1px 5px;border-radius:3px;}
+
+/* Preview table */
+.mapper-preview-wrap{margin:14px 24px 0;overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-sm);max-height:130px;overflow-y:auto;flex-shrink:0;}
+.mapper-preview-table{width:100%;border-collapse:collapse;font-size:11px;font-family:'DM Mono',monospace;}
+.mapper-preview-table th{padding:7px 10px;background:var(--bg);color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.3px;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:1;}
+.mapper-preview-table td{padding:5px 10px;color:var(--text2);border-bottom:1px solid var(--border);white-space:nowrap;}
+.mapper-preview-table tr:last-child td{border-bottom:none;}
+.mapper-preview-table tr:hover td{background:var(--bg);}
+
+/* Column mapping grid */
+.mapper-body{flex:1;overflow-y:auto;padding:16px 24px 20px;}
+.mapper-section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);margin-bottom:10px;margin-top:16px;}
+.mapper-section-label:first-child{margin-top:0;}
+.mapper-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+@media(max-width:600px){.mapper-grid{grid-template-columns:1fr;}}
+.mapper-field{display:flex;flex-direction:column;gap:5px;}
+.mapper-field label{font-size:11px;font-weight:600;color:var(--text2);display:flex;align-items:center;gap:5px;}
+.mapper-field label .req{color:var(--accent2);font-size:10px;}
+.mapper-field label .opt{color:var(--muted);font-size:10px;font-weight:400;}
+.mapper-field select{background:var(--bg);border:1.5px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;padding:8px 10px;border-radius:var(--radius-sm);cursor:pointer;transition:border-color 0.2s;width:100%;}
+.mapper-field select:focus{outline:none;border-color:var(--gold);}
+.mapper-field select.mapped{border-color:rgba(22,199,132,0.4);background:rgba(22,199,132,0.03);}
+
+/* Timezone & format row */
+.mapper-extra-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;}
+@media(max-width:600px){.mapper-extra-row{grid-template-columns:1fr 1fr;}}
+
+/* Footer */
+.mapper-foot{padding:14px 24px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;}
+body.dark-mode .mapper-foot{border-top-color:rgba(201,168,76,0.12);}
+.mapper-foot-hint{font-size:11px;color:var(--muted);flex:1;}
+.mapper-foot-hint span{color:var(--accent2);}
+.mapper-result-count{font-size:11px;font-weight:600;color:var(--accent);display:none;}
+.mapper-result-count.show{display:inline;}
+
 </style>
 </head>
 <body>
@@ -970,7 +1022,7 @@ body.dark-mode .pos-result-box{border-color:rgba(201,168,76,0.2);}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
           Salir
         </button>
-        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.htm,.html,.txt" onchange="handleImport(event)">
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.htm,.html,.txt" multiple onchange="handleImport(event)">
       </div>
     </div>
   </header>
@@ -1102,6 +1154,62 @@ body.dark-mode .pos-result-box{border-color:rgba(201,168,76,0.2);}
     <div class="modal-actions" style="margin-top:8px;">
       <button class="btn btn-muted" onclick="closeModal('dayNoteModal')">Cerrar</button>
       <button class="btn btn-primary" onclick="saveDayNote()">Guardar nota</button>
+    </div>
+  </div>
+</div>
+
+<!-- COLUMN MAPPER MODAL -->
+<div class="mapper-overlay" id="mapperOverlay">
+  <div class="mapper-modal">
+    <div class="mapper-head">
+      <div class="mapper-head-text">
+        <h3>&#x1F5C2; Mapeo manual de columnas</h3>
+        <p id="mapperHeadSub">El formato no fue reconocido automáticamente. Indicá qué columna corresponde a cada campo.</p>
+      </div>
+      <button class="mapper-close" onclick="closeMapperModal()">×</button>
+    </div>
+    <div class="mapper-diag" id="mapperDiag"></div>
+    <div class="mapper-preview-wrap" id="mapperPreviewWrap">
+      <table class="mapper-preview-table" id="mapperPreviewTable"></table>
+    </div>
+    <div class="mapper-body">
+      <div class="mapper-section-label">Campos obligatorios</div>
+      <div class="mapper-grid">
+        <div class="mapper-field"><label>ID de posición <span class="req">* requerido</span></label><select id="mf_id" onchange="updateMapperPreview()"><option value="">— no disponible —</option></select></div>
+        <div class="mapper-field"><label>Símbolo / Instrumento <span class="req">*</span></label><select id="mf_symbol" onchange="updateMapperPreview()"><option value="">— seleccionar —</option></select></div>
+        <div class="mapper-field"><label>Tipo (buy/sell) <span class="req">*</span></label><select id="mf_type" onchange="updateMapperPreview()"><option value="">— seleccionar —</option></select></div>
+        <div class="mapper-field"><label>Hora de apertura <span class="req">*</span></label><select id="mf_open_time" onchange="updateMapperPreview()"><option value="">— seleccionar —</option></select></div>
+        <div class="mapper-field"><label>Hora de cierre <span class="req">*</span></label><select id="mf_close_time" onchange="updateMapperPreview()"><option value="">— seleccionar —</option></select></div>
+        <div class="mapper-field"><label>Precio de entrada <span class="req">*</span></label><select id="mf_open_price" onchange="updateMapperPreview()"><option value="">— seleccionar —</option></select></div>
+        <div class="mapper-field"><label>Precio de cierre <span class="req">*</span></label><select id="mf_close_price" onchange="updateMapperPreview()"><option value="">— seleccionar —</option></select></div>
+        <div class="mapper-field"><label>Profit / P&amp;L <span class="req">*</span></label><select id="mf_profit" onchange="updateMapperPreview()"><option value="">— seleccionar —</option></select></div>
+      </div>
+      <div class="mapper-section-label">Campos opcionales</div>
+      <div class="mapper-grid">
+        <div class="mapper-field"><label>Volumen / Lotaje <span class="opt">(opcional)</span></label><select id="mf_volume" onchange="updateMapperPreview()"><option value="">— no disponible —</option></select></div>
+        <div class="mapper-field"><label>Comisión <span class="opt">(opcional)</span></label><select id="mf_commission" onchange="updateMapperPreview()"><option value="">— no disponible —</option></select></div>
+        <div class="mapper-field"><label>Swap <span class="opt">(opcional)</span></label><select id="mf_swap" onchange="updateMapperPreview()"><option value="">— no disponible —</option></select></div>
+        <div class="mapper-field"><label>Stop Loss <span class="opt">(opcional)</span></label><select id="mf_sl" onchange="updateMapperPreview()"><option value="">— no disponible —</option></select></div>
+        <div class="mapper-field"><label>Take Profit <span class="opt">(opcional)</span></label><select id="mf_tp" onchange="updateMapperPreview()"><option value="">— no disponible —</option></select></div>
+        <div class="mapper-field"><label>Pips <span class="opt">(opcional)</span></label><select id="mf_pips" onchange="updateMapperPreview()"><option value="">— no disponible —</option></select></div>
+      </div>
+      <div class="mapper-section-label">Configuración de zona horaria</div>
+      <div class="mapper-extra-row">
+        <div class="mapper-field"><label>Zona horaria del archivo</label>
+          <select id="mf_tz"><option value="0">UTC</option><option value="1" selected>UTC+1 (Broker estándar)</option><option value="-4">UTC-4 (EDT / TradingView)</option><option value="-5">UTC-5 (EST / Chicago)</option><option value="-6">UTC-6 (CST)</option><option value="2">UTC+2 (EET)</option><option value="3">UTC+3 (Moscú)</option></select>
+        </div>
+        <div class="mapper-field"><label>Separador decimal</label>
+          <select id="mf_decimal"><option value=".">Punto ( 1.23 )</option><option value=",">Coma ( 1,23 )</option></select>
+        </div>
+        <div class="mapper-field"><label>Valor tipo "buy"</label>
+          <select id="mf_buy_val"><option value="buy">buy</option><option value="long">long</option><option value="b">b</option><option value="compra">compra</option><option value="1">1</option><option value="BUY">BUY</option><option value="Long">Long</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="mapper-foot">
+      <div class="mapper-foot-hint"><span id="mapperValidCount"></span><span id="mapperWarnText"></span></div>
+      <button class="btn btn-muted" onclick="closeMapperModal()">Cancelar</button>
+      <button class="btn btn-primary" id="mapperImportBtn" onclick="confirmMapperImport()" disabled>Importar</button>
     </div>
   </div>
 </div>
@@ -2161,6 +2269,193 @@ function procRowsTradingView(rows, fname) {
 }
 
 // ── Auto-detect CSV format by headers ────────────────────────────────────
+// ── Tradovate Position History CSV parser ────────────────────────────────
+// Export: Positions → Position History (CSV)
+// Each row = one paired fill (entry + exit of Paired Qty contracts).
+// Multiple rows can share the same Position ID when a position was
+// scaled in/out — each row is an independent trade in the journal.
+//
+// Key columns used:
+//   Pair ID            → unique trade ID (use this, not Position ID)
+//   Product            → symbol (MNQ, ES, CL…)
+//   _tickSize          → tick size for pips calculation
+//   Buy Price          → price of the buy side fill
+//   Sell Price         → price of the sell side fill
+//   P/L                → realized profit for this paired fill
+//   Paired Qty         → contracts traded
+//   Bought Timestamp   → when the buy fill happened (MM/DD/YYYY HH:MM:SS)
+//   Sold Timestamp     → when the sell fill happened
+//
+// Direction logic:
+//   whichever side happened FIRST is the opening trade.
+//   Bought TS < Sold TS  → LONG  (bought to open, sold to close)
+//   Sold TS   < Bought TS → SHORT (sold to open, bought to close)
+// ── Tradovate Cash History CSV parser ────────────────────────────────────
+// Builds a map: ET-timestamp → total fees (sum of Exchange + Clearing + NFA + Commission)
+// Used to enrich Position History trades with real commission data.
+// Fee types charged per fill: Exchange Fee, Clearing Fee, Nfa Fee, Commission
+// Each fill (open AND close) carries its own set of fees → sum both for round-trip cost.
+function parseTradovateCash(txt) {
+  const FEE_TYPES = new Set(['exchange fee','clearing fee','nfa fee','commission']);
+  const lines = txt.replace(/^\uFEFF/, '').split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return {};
+
+  // Parse header
+  const sep = ',';
+  const hdr = parseCSVLine(lines[0], sep).map(h => h.toLowerCase().trim());
+  const iTS    = hdr.findIndex(h => h === 'timestamp');
+  const iDelta = hdr.findIndex(h => h === 'delta');
+  const iType  = hdr.findIndex(h => h.includes('cash change type') || h === 'type');
+  if (iTS < 0 || iDelta < 0 || iType < 0) return {};
+
+  const feeMap = {}; // raw ET timestamp string → cumulative fees (negative number)
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseCSVLine(lines[i], sep);
+    const ctype = (cols[iType] || '').trim().toLowerCase();
+    if (!FEE_TYPES.has(ctype)) continue;
+    const ts  = (cols[iTS] || '').trim();
+    const val = parseFloat(String(cols[iDelta] || '').replace(/[,$\s]/g, '')) || 0;
+    feeMap[ts] = (feeMap[ts] || 0) + val;
+  }
+  return feeMap;
+}
+
+// Merge commission data from Cash History into Position History trades.
+// feeMap keys are raw ET timestamps (e.g. "03/30/2026 10:21:44").
+// Trade open_time and close_time are stored as UTC ISO strings.
+// We reverse the ET→UTC conversion to look up the original ET key.
+function applyTradovateFees(trades, feeMap, parseTSfn) {
+  if (!feeMap || !Object.keys(feeMap).length) return trades;
+
+  // Build a reverse map: utcISO → fee
+  // We convert each feeMap key (ET string) to UTC ISO using the same function
+  const utcFeeMap = {};
+  for (const [etStr, fee] of Object.entries(feeMap)) {
+    const utcISO = parseTSfn(etStr);
+    if (utcISO) utcFeeMap[utcISO] = (utcFeeMap[utcISO] || 0) + fee;
+  }
+
+  return trades.map(tr => {
+    const feesOpen  = utcFeeMap[tr.open_time]  || 0;
+    const feesClose = utcFeeMap[tr.close_time] || 0;
+    const totalComm = feesOpen + feesClose;
+    if (totalComm === 0) return tr;
+    const net = tr.profit + totalComm;
+    return {
+      ...tr,
+      commission:  parseFloat(totalComm.toFixed(4)),
+      result: net > 0.01 ? 'win' : net < -0.01 ? 'loss' : 'breakeven'
+    };
+  });
+}
+
+function procRowsTradovate(rows, fname) {
+  const PIP = {
+    MNQ:0.25, NQ:0.25, MES:0.25, ES:0.25,
+    MYM:1,    YM:1,    M2K:0.1,  RTY:0.1,
+    MCL:0.01, CL:0.01, MGC:0.1,  GC:0.1,
+    MHG:0.0005, SI:0.005, ZB:0.03125
+  };
+
+  const hdr = rows[0].map(h => String(h||'').trim().toLowerCase().replace(/\s+/g,''));
+  const idx = name => hdr.findIndex(h => h === name.toLowerCase().replace(/\s+/g,''));
+
+  const iRawPairId  = idx('PairID');
+  const iProduct    = idx('Product');
+  const iTickSize   = idx('_tickSize');
+  const iBuyPrice   = idx('BuyPrice');
+  const iSellPrice  = idx('SellPrice');
+  const iPL         = idx('P/L');
+  const iQty        = idx('PairedQty');
+  const iBoughtTS   = idx('BoughtTimestamp');
+  const iSoldTS     = idx('SoldTimestamp');
+
+  function parseTradovateTS(s) {
+    // Tradovate exports in Eastern Time (ET). We need to store UTC in the DB
+    // so the dashboard's ET display conversion works correctly.
+    // Strategy: treat the timestamp as ET, convert to UTC by detecting DST.
+    if (!s) return null;
+    s = String(s).trim();
+    const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{2}:\d{2}:\d{2})$/);
+    if (!m) return null;
+    const [, mo, dd, yyyy, hms] = m;
+    const [hh, mm, ss] = hms.split(':').map(Number);
+    // Build a UTC candidate at UTC-4 (EDT) and check if NY interprets it back as the same hour
+    // This auto-handles the EST/EDT boundary
+    const edtCandidate = new Date(Date.UTC(+yyyy, +mo-1, +dd, hh+4, mm, ss));
+    const nyHour = parseInt(new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York', hour: 'numeric', hour12: false
+    }).format(edtCandidate));
+    if (nyHour === hh) return edtCandidate.toISOString(); // EDT offset correct
+    // If not, try EST (UTC-5)
+    const estCandidate = new Date(Date.UTC(+yyyy, +mo-1, +dd, hh+5, mm, ss));
+    return estCandidate.toISOString();
+  }
+
+  function pNum(v) {
+    if (v == null || v === '') return null;
+    if (typeof v === 'number') return v;
+    const n = parseFloat(String(v).replace(/[,$\s]/g,''));
+    return isNaN(n) ? null : n;
+  }
+
+  return rows.slice(1).map((c, rowIdx) => {
+    const boughtTS = parseTradovateTS(c[iBoughtTS]);
+    const soldTS   = parseTradovateTS(c[iSoldTS]);
+    if (!boughtTS || !soldTS) return null;
+
+    const buyPrice  = pNum(c[iBuyPrice]);
+    const sellPrice = pNum(c[iSellPrice]);
+    const pl        = pNum(c[iPL]) ?? 0;
+    const vol       = pNum(c[iQty]) ?? 1;
+    const sym       = String(c[iProduct]||'').trim().toUpperCase();
+    const tickSize  = pNum(c[iTickSize]) || PIP[sym] || 0.25;
+
+    // Direction: whoever acted first opened the trade
+    const btMs  = new Date(boughtTS).getTime();
+    const stMs  = new Date(soldTS).getTime();
+    const isLong = btMs <= stMs;
+
+    const open_time   = isLong ? boughtTS  : soldTS;
+    const close_time  = isLong ? soldTS    : boughtTS;
+    const open_price  = isLong ? buyPrice  : sellPrice;
+    const close_price = isLong ? sellPrice : buyPrice;
+    const typ         = isLong ? 'buy'     : 'sell';
+
+    const dur  = Math.abs(Math.round((new Date(close_time) - new Date(open_time)) / 60000));
+    const pip  = PIP[sym] || tickSize;
+    const pips = (open_price != null && close_price != null)
+      ? parseFloat(((isLong ? close_price - open_price : open_price - close_price) / pip).toFixed(1))
+      : null;
+
+    // Pair ID is the unique per-fill trade ID in Tradovate
+    const rawPairId = String(c[iRawPairId]||'').replace(/\D/g,'');
+    const posId = parseInt(rawPairId) || (Date.now() + rowIdx);
+
+    return {
+      position_id:      posId,
+      symbol:           sym,
+      type:             typ,
+      open_time,
+      open_price,
+      volume:           vol,
+      stop_loss:        null,
+      take_profit:      null,
+      close_time,
+      close_price,
+      commission:       0,
+      swap:             0,
+      profit:           pl,
+      duration_minutes: dur,
+      pips,
+      result: pl > 0.01 ? 'win' : pl < -0.01 ? 'loss' : 'breakeven',
+      source_file:      fname,
+      session_name:     '__TEMP__',
+      user_id:          _user ? _user.id : null
+    };
+  }).filter(r => r && r.open_time && r.close_time);
+}
+
 function detectAndParseCsv(txt, fname) {
   // Remove BOM
   txt = txt.replace(/^\uFEFF/, '');
@@ -2185,6 +2480,11 @@ function detectAndParseCsv(txt, fname) {
   if (rows.length < 2) throw new Error('Archivo CSV vacío o inválido');
 
   const header = rows[0].map(h => h.toLowerCase().replace(/["\s]/g,''));
+
+  // Tradovate Position History: unique fingerprint = "pairid" + "_ticksize" + "boughttimestamp"
+  if (header.some(h => h === 'pairid') || header.some(h => h === '_ticksize') ||
+      (header.some(h => h === 'boughttimestamp') && header.some(h => h === 'soldtimestamp')))
+    return procRowsTradovate(rows, fname);
 
   // cTrader: "opening direction" column
   if (header.some(h => h.includes('openingdirection') || h.includes('opening direction')))
@@ -2213,7 +2513,7 @@ function detectAndParseCsv(txt, fname) {
   if (rows[0].length >= 14)
     return procRowsMT4CSV(rows, fname);
 
-  throw new Error('Formato CSV no reconocido.\nFormatos soportados: MT5, MT4, cTrader, NinjaTrader 8, TradingView.\nVerificá que el archivo tenga encabezados de columna.');
+  throw new Error('Formato CSV no reconocido.\nFormatos soportados: MT5, MT4, cTrader, NinjaTrader 8, TradingView, Tradovate.\nVerificá que el archivo tenga encabezados de columna.');
 }
 
 // ── Auto-detect XLSX format by headers ───────────────────────────────────
@@ -2234,8 +2534,382 @@ function detectAndParseXlsx(all, fname) {
   throw new Error('Formato Excel no reconocido. Formatos soportados: MT5, cTrader, NinjaTrader 8');
 }
 
+// ── COLUMN MAPPER STATE ──────────────────────────────────────────────────────
+let _mapperRows = [];   // raw parsed rows (array of arrays), including header
+let _mapperFname = '';  // original filename
+let _mapperErrMsg = ''; // error message from auto-detection
+
+function closeMapperModal() {
+  document.getElementById('mapperOverlay').classList.remove('open');
+  _mapperRows = [];
+  _mapperFname = '';
+}
+
+// Populate the column selector dropdowns with the headers found in the file
+function populateMapperSelects(headers) {
+  const FIELDS = ['mf_id','mf_symbol','mf_type','mf_open_time','mf_close_time',
+                  'mf_open_price','mf_close_price','mf_profit',
+                  'mf_volume','mf_commission','mf_swap','mf_sl','mf_tp','mf_pips'];
+
+  // Auto-guess mappings based on header name similarity
+  const GUESSES = {
+    mf_id:          ['order','ticket','position','id','trade','#','num'],
+    mf_symbol:      ['symbol','instrument','asset','pair','ticker','instrumento'],
+    mf_type:        ['type','direction','side','market pos','order type','tipo','dir'],
+    mf_open_time:   ['open time','entry time','open','apertura','entrada','from','start'],
+    mf_close_time:  ['close time','exit time','close','cierre','salida','to','end'],
+    mf_open_price:  ['open price','entry price','price open','open','entry','precio entrada','precio apertura'],
+    mf_close_price: ['close price','exit price','price close','close','exit','precio cierre','precio salida'],
+    mf_profit:      ['profit','net','p&l','pnl','resultado','ganancia','p/l','net profit','realized'],
+    mf_volume:      ['volume','size','qty','quantity','lots','lot','volumen','lotaje'],
+    mf_commission:  ['commission','comm','fee','comision','comisión'],
+    mf_swap:        ['swap'],
+    mf_sl:          ['s/l','sl','stop loss','stoploss'],
+    mf_tp:          ['t/p','tp','take profit','takprofit'],
+    mf_pips:        ['pips','pip'],
+  };
+
+  FIELDS.forEach(fid => {
+    const sel = document.getElementById(fid);
+    if (!sel) return;
+    // Keep first placeholder option, rebuild the rest
+    sel.innerHTML = '<option value="">— no disponible —</option>';
+    headers.forEach((h, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = h || '(columna ' + i + ')';
+      sel.appendChild(opt);
+    });
+    // Auto-select best match
+    const hints = GUESSES[fid] || [];
+    for (let i = 0; i < headers.length; i++) {
+      const hn = String(headers[i] || '').toLowerCase().replace(/[_\-\s]+/g, ' ');
+      if (hints.some(h => hn.includes(h))) {
+        sel.value = i;
+        sel.classList.add('mapped');
+        break;
+      }
+    }
+  });
+
+  // Auto-detect decimal separator from first data row
+  if (_mapperRows.length > 1) {
+    const sample = _mapperRows[1].join(' ');
+    if (/\d,\d/.test(sample) && !/\d\.\d/.test(sample)) {
+      document.getElementById('mf_decimal').value = ',';
+    }
+  }
+
+  // Auto-detect timezone hint from buy_val
+  if (_mapperRows.length > 1) {
+    const typeIdx = parseInt(document.getElementById('mf_type').value);
+    if (!isNaN(typeIdx)) {
+      const sampleType = String(_mapperRows[1][typeIdx] || '').trim().toLowerCase();
+      const buyOpts = ['buy','long','b','compra','1','BUY','Long'];
+      const match = buyOpts.find(v => v.toLowerCase() === sampleType);
+      if (match) document.getElementById('mf_buy_val').value = match;
+    }
+  }
+}
+
+// Render preview table (first 4 data rows)
+function renderMapperPreview() {
+  const table = document.getElementById('mapperPreviewTable');
+  if (!_mapperRows.length) { table.innerHTML = ''; return; }
+  const headers = _mapperRows[0];
+  let html = '<thead><tr>' + headers.map(h => '<th>' + (h||'').toString().substring(0,20) + '</th>').join('') + '</tr></thead>';
+  html += '<tbody>';
+  _mapperRows.slice(1, 5).forEach(row => {
+    html += '<tr>' + row.map(c => '<td>' + String(c||'').substring(0,18) + '</td>').join('') + '</tr>';
+  });
+  html += '</tbody>';
+  table.innerHTML = html;
+}
+
+// Parse number using selected decimal separator
+function mapperParseNum(v) {
+  if (v == null || v === '' || v === '-' || v === '--') return null;
+  // If already a number (from XLSX), return directly
+  if (typeof v === 'number') return v;
+  const dec = document.getElementById('mf_decimal').value;
+  let s = String(v).trim();
+  // Remove currency symbols and spaces
+  s = s.replace(/[$ €£¥\s]/g, '');
+  if (dec === ',') {
+    // European format: 1.234,56 → remove dots, replace comma
+    s = s.replace(/\.(?=\d)/g, '').replace(',', '.');
+  } else {
+    // US format: 1,234.56 → remove commas
+    s = s.replace(/,(?=\d)/g, '');
+  }
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+
+// Parse date with timezone offset — handles Excel serials, ISO, slash/dot formats
+function mapperParseDate(v) {
+  if (v == null || v === '') return null;
+  const tzH = parseFloat(document.getElementById('mf_tz').value) || 0;
+  let d;
+  // Excel serial date (number like 45678)
+  if (typeof v === 'number' || /^\d{5}$/.test(String(v).trim())) {
+    const serial = parseFloat(v);
+    if (!isNaN(serial) && serial > 40000 && serial < 60000) {
+      // Excel epoch: Jan 1 1900, but with leap-year bug → use 25569 offset
+      d = new Date((serial - 25569) * 86400000);
+      if (!isNaN(d)) return new Date(d.getTime() - tzH * 3600000).toISOString();
+    }
+  }
+  let s = String(v).trim();
+  // Normalize separators: dots/slashes to dashes in date portion
+  s = s.replace(/^(\d{4})\.(\d{2})\.(\d{2})/, '$1-$2-$3');
+  s = s.replace(/^(\d{2})\/(\d{2})\/(\d{4})/, '$3-$1-$2');
+  s = s.replace(/^(\d{2})-(\d{2})-(\d{4})/, '$3-$1-$2');
+  // If only a date (no time), append midnight UTC
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) s += 'T00:00:00Z';
+  d = new Date(s.includes('T') || s.includes('Z') ? s : s.replace(' ', 'T') + 'Z');
+  if (isNaN(d)) return null;
+  return new Date(d.getTime() - tzH * 3600000).toISOString();
+}
+
+// Build _pending from mapper selections and count valid rows
+function buildPendingFromMapper(debugMode) {
+  const get = id => {
+    const v = document.getElementById(id).value;
+    return v === '' ? null : parseInt(v);
+  };
+  const idxId    = get('mf_id');
+  const idxSym   = get('mf_symbol');
+  const idxType  = get('mf_type');
+  const idxOT    = get('mf_open_time');
+  const idxCT    = get('mf_close_time');
+  const idxOP    = get('mf_open_price');
+  const idxCP    = get('mf_close_price');
+  const idxProfit= get('mf_profit');
+  const idxVol   = get('mf_volume');
+  const idxComm  = get('mf_commission');
+  const idxSwap  = get('mf_swap');
+  const idxSL    = get('mf_sl');
+  const idxTP    = get('mf_tp');
+  const idxPips  = get('mf_pips');
+  const buyVal   = document.getElementById('mf_buy_val').value.toLowerCase();
+  const PIP = {US100:1,NAS100:1,NQ:0.25,ES:0.25,XAUUSD:0.1,US500:0.1,GOLD:0.1};
+
+  const results = [];
+  const debugLines = [];
+
+  _mapperRows.slice(1).forEach((c, rowIdx) => {
+    const sym  = idxSym  != null ? String(c[idxSym]  || '').trim().toUpperCase() : 'UNKNOWN';
+    const rawType = idxType != null ? String(c[idxType] || '').trim().toLowerCase() : '';
+    const typ  = rawType.includes(buyVal) || rawType === 'long' || rawType === '1' ? 'buy' : 'sell';
+
+    const rawOT = idxOT != null ? c[idxOT] : null;
+    const rawCT = idxCT != null ? c[idxCT] : null;
+    const odt  = idxOT != null ? mapperParseDate(rawOT) : null;
+    const cdt  = idxCT != null ? mapperParseDate(rawCT) : null;
+
+    const rawProfit = idxProfit != null ? c[idxProfit] : null;
+    const parsedProfit = idxProfit != null ? mapperParseNum(c[idxProfit]) : null;
+
+    if (debugMode && rowIdx < 5) {
+      debugLines.push({
+        row: rowIdx + 2,
+        rawOT: rawOT, parsedOT: odt,
+        rawCT: rawCT, parsedCT: cdt,
+        sym, typ, rawType,
+        rawProfit, parsedProfit
+      });
+    }
+
+    if (!odt || !cdt) return;
+
+    const op   = idxOP     != null ? mapperParseNum(c[idxOP])     : null;
+    const cp   = idxCP     != null ? mapperParseNum(c[idxCP])     : null;
+    const pr   = idxProfit != null ? mapperParseNum(c[idxProfit]) : 0;
+    const vol  = idxVol    != null ? mapperParseNum(c[idxVol])    : null;
+    const cm   = idxComm   != null ? mapperParseNum(c[idxComm])   : 0;
+    const sw   = idxSwap   != null ? mapperParseNum(c[idxSwap])   : 0;
+    const sl   = idxSL     != null ? mapperParseNum(c[idxSL])     : null;
+    const tp   = idxTP     != null ? mapperParseNum(c[idxTP])     : null;
+    const net  = (pr||0) + (cm||0) + (sw||0);
+    const dur  = Math.round((new Date(cdt) - new Date(odt)) / 60000);
+    const pip  = PIP[sym] || 0.0001;
+    const pipsCalc = idxPips != null ? mapperParseNum(c[idxPips]) :
+                    (op && cp ? parseFloat(((typ==='buy'?cp-op:op-cp)/pip).toFixed(1)) : null);
+    let posId;
+    if (idxId != null) {
+      posId = parseInt(String(c[idxId] || '').replace(/\D/g, '')) || null;
+    }
+    if (!posId) posId = Date.now() + rowIdx;
+    results.push({
+      position_id: posId, symbol: sym, type: typ,
+      open_time: odt, open_price: op, volume: vol,
+      stop_loss: sl && sl !== 0 ? sl : null,
+      take_profit: tp && tp !== 0 ? tp : null,
+      close_time: cdt, close_price: cp,
+      commission: cm || 0, swap: sw || 0, profit: pr || 0,
+      duration_minutes: dur, pips: pipsCalc,
+      result: net > 0.01 ? 'win' : net < -0.01 ? 'loss' : 'breakeven',
+      source_file: _mapperFname, session_name: '__TEMP__',
+      user_id: _user ? _user.id : null
+    });
+  });
+  return { results, debugLines };
+}
+
+function updateMapperPreview() {
+  const { results, debugLines } = buildPendingFromMapper(true);
+  const countEl = document.getElementById('mapperValidCount');
+  const warnEl  = document.getElementById('mapperWarnText');
+  const btn     = document.getElementById('mapperImportBtn');
+  const totalDataRows = Math.max(0, _mapperRows.length - 1);
+
+  // Show debug info in the diagnostic banner
+  const diag = document.getElementById('mapperDiag');
+  if (results.length === 0 && debugLines.length > 0) {
+    let dbg = '<strong>Debug fila 1:</strong><br>';
+    const d = debugLines[0];
+    dbg += 'Apertura → raw: <code>' + String(d.rawOT).substring(0,30) + '</code> (tipo: <em>' + typeof d.rawOT + '</em>) → <code>' + (d.parsedOT || 'NULL ❌') + '</code><br>';
+    dbg += 'Cierre &nbsp;&nbsp;→ raw: <code>' + String(d.rawCT).substring(0,30) + '</code> (tipo: <em>' + typeof d.rawCT + '</em>) → <code>' + (d.parsedCT || 'NULL ❌') + '</code><br>';
+    dbg += 'Profit &nbsp;&nbsp;→ raw: <code>' + String(d.rawProfit).substring(0,20) + '</code> (tipo: <em>' + typeof d.rawProfit + '</em>) → <code>' + (d.parsedProfit !== null ? d.parsedProfit : 'NULL ❌') + '</code><br>';
+    dbg += 'Tipo → raw: <code>' + d.rawType + '</code> → interpretado: <code>' + d.typ + '</code> | buy_val configurado: <code>' + document.getElementById('mf_buy_val').value + '</code>';
+    diag.innerHTML = dbg;
+    diag.classList.add('show');
+  } else if (results.length > 0) {
+    diag.classList.remove('show');
+  }
+
+  if (results.length > 0) {
+    countEl.textContent = '✓ ' + results.length + ' operaciones válidas';
+    countEl.style.color = 'var(--accent)';
+    const skipped = totalDataRows - results.length;
+    warnEl.textContent = skipped > 0 ? '  (' + skipped + ' filas omitidas)' : '';
+    warnEl.style.color = 'var(--muted)';
+    btn.disabled = false;
+    btn.style.opacity = '';
+    btn.style.pointerEvents = '';
+  } else {
+    countEl.textContent = totalDataRows > 0
+      ? 'Sin resultados — mirá el diagnóstico arriba para ver el problema exacto.'
+      : 'Archivo sin filas de datos.';
+    countEl.style.color = 'var(--accent2)';
+    warnEl.textContent = '';
+    btn.disabled = true;
+    btn.style.opacity = '0.4';
+    btn.style.pointerEvents = 'none';
+  }
+}
+
+async function confirmMapperImport() {
+  const { results: trades } = buildPendingFromMapper(false);
+  if (!trades.length) { alert('No se encontraron operaciones válidas con el mapeo actual.'); return; }
+  _pending = trades;
+  closeMapperModal();
+  // Proceed to the normal import modal
+  const pendingIds = _pending.map(r => r.position_id).filter(Boolean);
+  const existRows = pendingIds.length > 0
+    ? await sbGet('mt5_trades?select=position_id&user_id=eq.' + _user.id + '&position_id=in.(' + pendingIds.join(',') + ')')
+    : [];
+  const existIds = new Set(Array.isArray(existRows) ? existRows.map(r => r.position_id) : []);
+  const nw = _pending.filter(r => !existIds.has(r.position_id)).length;
+  const dp = _pending.filter(r =>  existIds.has(r.position_id)).length;
+  document.getElementById('sessionNameInput').value = _mapperFname.replace(/\.[^.]+$/, '');
+  document.getElementById('importInfo').innerHTML =
+    '<span class="ok">+ ' + nw + ' ' + t('import_new') + '</span><br>' +
+    (dp ? '<span class="dup">! ' + dp + ' ' + t('import_dup') + '</span>' : '');
+  openModal('importModal');
+}
+
+// Open the mapper modal with parsed rows and an error message
+function openMapperModal(rows, fname, errMsg) {
+  _mapperRows = rows;
+  _mapperFname = fname;
+  document.getElementById('mapperHeadSub').textContent =
+    'El formato de "' + fname + '" no fue reconocido automáticamente. Indicá qué columna corresponde a cada campo.';
+  // Show diagnostic
+  const diag = document.getElementById('mapperDiag');
+  if (errMsg) {
+    const headers = rows.length > 0 ? rows[0] : [];
+    const headerStr = headers.length ? headers.map(h => '<code>' + (h||'').toString().substring(0,20) + '</code>').join(', ') : '(vacío)';
+    diag.innerHTML = '<strong>Diagnóstico:</strong> ' + errMsg.replace(/</g,'&lt;') +
+      '<br>Columnas detectadas en el archivo: ' + headerStr;
+    diag.classList.add('show');
+  } else {
+    diag.classList.remove('show');
+  }
+  renderMapperPreview();
+  if (rows.length > 0) populateMapperSelects(rows[0]);
+  updateMapperPreview();
+  document.getElementById('mapperOverlay').classList.add('open');
+}
+
+// ── Robust raw rows extractor for any CSV/XLSX ────────────────────────────
+function extractRawRows(buf, fname) {
+  if (fname.endsWith('.csv') || fname.endsWith('.txt')) {
+    const txt = new TextDecoder('utf-8').decode(buf).replace(/^\uFEFF/, '');
+    const firstLine = txt.split(/\r?\n/).find(l => l.trim()) || '';
+    const sep = detectSep(firstLine);
+    return parseCSV(txt, sep);
+  } else {
+    const wb = XLSX.read(buf, {type:'array', raw:true}), ws = wb.Sheets[wb.SheetNames[0]];
+    return XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:''});
+  }
+}
+
 async function handleImport(ev){
-  const file=ev.target.files[0];if(!file)return;ev.target.value='';
+  const files = Array.from(ev.target.files || []);
+  if (!files.length) return;
+  ev.target.value = '';
+
+  // ── Tradovate dual-file import (Position History + Cash History) ──────
+  // Detect if user dropped 2 CSVs where one is Cash History (has "cash change type" header)
+  if (files.length === 2 && files.every(f => f.name.endsWith('.csv') || f.name.endsWith('.txt'))) {
+    try {
+      const texts = await Promise.all(files.map(f => f.arrayBuffer().then(b => new TextDecoder('utf-8').decode(b))));
+      const isCash = txt => /cash.change.type/i.test(txt.split(/\r?\n/)[0] || '');
+      const cashIdx = texts.findIndex(isCash);
+      const posIdx  = cashIdx === 0 ? 1 : 0;
+      if (cashIdx >= 0) {
+        const rows = parseCSV(texts[posIdx].replace(/^\uFEFF/,''), ',');
+        const hdr  = rows[0].map(h => h.toLowerCase().replace(/[\s"]/g,''));
+        if (hdr.some(h => h === 'pairid') || hdr.some(h => h === '_ticksize')) {
+          const feeMap = parseTradovateCash(texts[cashIdx]);
+          const trades = procRowsTradovate(rows, files[posIdx].name);
+          // applyTradovateFees needs the parseTradovateTS function — call inline
+          const enriched = applyTradovateFees(trades, feeMap, s => {
+            if (!s) return null;
+            const m = s.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{2}:\d{2}:\d{2})$/);
+            if (!m) return null;
+            const [, mo, dd, yyyy, hms] = m;
+            const [hh, mm, ss] = hms.split(':').map(Number);
+            const edtC = new Date(Date.UTC(+yyyy, +mo-1, +dd, hh+4, mm, ss));
+            const nyH  = parseInt(new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'numeric',hour12:false}).format(edtC));
+            if (nyH === hh) return edtC.toISOString();
+            return new Date(Date.UTC(+yyyy, +mo-1, +dd, hh+5, mm, ss)).toISOString();
+          });
+          _pending = enriched;
+          const pendingIds = _pending.map(r => r.position_id).filter(Boolean);
+          const existRows = pendingIds.length > 0
+            ? await sbGet('mt5_trades?select=position_id&user_id=eq.'+_user.id+'&position_id=in.('+pendingIds.join(',')+')')
+            : [];
+          const existIds = new Set(Array.isArray(existRows) ? existRows.map(r => r.position_id) : []);
+          const nw = _pending.filter(r => !existIds.has(r.position_id)).length;
+          const dp = _pending.filter(r =>  existIds.has(r.position_id)).length;
+          const commTotal = enriched.reduce((s,t) => s + (t.commission||0), 0);
+          document.getElementById('sessionNameInput').value = files[posIdx].name.replace(/\.[^.]+$/, '');
+          document.getElementById('importInfo').innerHTML =
+            '<span class="ok">+ '+nw+' '+t('import_new')+'</span>' +
+            (dp ? '<br><span class="dup">! '+dp+' '+t('import_dup')+'</span>' : '') +
+            '<br><span style="color:var(--gold);font-size:11px">✓ Comisiones incluidas: $'+Math.abs(commTotal).toFixed(2)+'</span>';
+          openModal('importModal');
+          return;
+        }
+      }
+    } catch(e2) { /* fall through to single-file handling */ }
+  }
+
+  // ── Single file import (all other formats) ────────────────────────────
+  const file = files[0];
   try{
     const buf=await file.arrayBuffer();
     const fname=file.name;
@@ -2264,6 +2938,10 @@ async function handleImport(ev){
       _pending=detectAndParseXlsx(all,fname);
     }
 
+    if(!_pending || _pending.length === 0) {
+      throw new Error('No se encontraron operaciones válidas en el archivo. Verificá que el archivo tenga filas de trades cerrados.');
+    }
+
     // Solo consultar los position_id que están en este archivo
     const pendingIds=_pending.map(r=>r.position_id).filter(Boolean);
     const existRows=pendingIds.length>0
@@ -2276,9 +2954,25 @@ async function handleImport(ev){
     document.getElementById('importInfo').innerHTML='<span class="ok">+ '+nw+' '+t('import_new')+'</span><br>'+(dp?'<span class="dup">! '+dp+' '+t('import_dup')+'</span>':'');
     openModal('importModal');
   }catch(e){
-    const isCsv = file && (file.name.endsWith('.csv')||file.name.endsWith('.txt'));
-    const hint  = isCsv ? '\n\nFormatos CSV soportados:\n• MT5 (separador ; o ,)\n• MT4 (Account History CSV)\n• cTrader (CSV con "Opening Direction")\n• NinjaTrader 8 (CSV con "Market pos.")' : '';
-    alert('Error al importar: '+e.message+hint);
+    // Instead of a plain alert, try to open the mapper modal with raw rows
+    const fname = file ? file.name : '';
+    const isMappable = fname && !fname.endsWith('.htm') && !fname.endsWith('.html');
+    if (isMappable) {
+      try {
+        const buf2 = await file.arrayBuffer();
+        const rawRows = extractRawRows(buf2, fname);
+        if (rawRows && rawRows.length > 1) {
+          openMapperModal(rawRows, fname, e.message);
+          return;
+        }
+      } catch(e2) { /* fallthrough to alert */ }
+    }
+    // Fallback alert with rich diagnostic
+    const isCsv = fname.endsWith('.csv') || fname.endsWith('.txt');
+    const supported = isCsv
+      ? '\n\nFormatos soportados:\n• MT5 (separador ; o ,)\n• MT4 CSV\n• cTrader (col. "Opening Direction")\n• NinjaTrader 8 (col. "Market pos.")\n• TradingView Cash History\n\nSi tu plataforma no aparece en la lista, intentá importar de nuevo — el dashboard abrirá un asistente de mapeo manual.'
+      : '\n\nFormatos Excel soportados: MT5, cTrader, NinjaTrader 8.';
+    alert('Error al importar: ' + e.message + supported);
   }
 }
 async function confirmImport(){
