@@ -916,8 +916,22 @@ body.dark-mode .mapper-foot{border-top-color:rgba(201,168,76,0.12);}
 .mapper-result-count{font-size:11px;font-weight:600;color:var(--accent);display:none;}
 .mapper-result-count.show{display:inline;}
 
+/* ── PROP FIRM PRESETS ── */
+.prop-preset-section{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:14px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.prop-presets-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+.prop-preset-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:5px 11px;border-radius:20px;border:1.5px solid var(--border);color:var(--muted);cursor:pointer;background:var(--bg);transition:all 0.15s;white-space:nowrap;}
+.prop-preset-chip:hover{border-color:var(--gold);color:var(--gold);background:var(--gold-soft);}
+.prop-preset-chip.builtin{border-style:dashed;}
+.prop-preset-del{font-size:14px;line-height:1;font-weight:700;color:var(--accent2);opacity:0.5;transition:opacity 0.15s;margin-left:2px;}
+.prop-preset-del:hover{opacity:1;}
+.prop-preset-save-row{display:flex;gap:6px;margin-top:4px;}
+.prop-preset-save-row input{flex:1;background:var(--bg);border:1.5px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;padding:7px 10px;border-radius:var(--radius-sm);transition:border-color 0.2s;}
+.prop-preset-save-row input:focus{outline:none;border-color:var(--gold);}
+.prop-preset-save-row input::placeholder{color:var(--muted);}
+.prop-preset-save-btn{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;padding:7px 14px;border:1.5px solid var(--gold);color:var(--gold);background:transparent;border-radius:var(--radius-sm);cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+.prop-preset-save-btn:hover{background:var(--gold);color:#fff;}
+.prop-preset-hint{font-size:10px;color:var(--muted);margin-top:5px;margin-bottom:2px;}
 </style>
-</head>
 <body>
 
 <div id="calTooltip">
@@ -1087,6 +1101,13 @@ body.dark-mode .mapper-foot{border-top-color:rgba(201,168,76,0.12);}
   <div class="modal">
     <h2>Configuración Prop Firm</h2>
     <p>Definí las reglas de evaluación para esta sesión.</p>
+    <div class="prop-modal-section">Presets</div>
+    <div class="prop-presets-grid" id="propPresetsWrap"></div>
+    <div class="prop-preset-save-row">
+      <input type="text" id="propPresetNameInput" placeholder="Nombre para guardar como preset..." maxlength="40" onkeydown="if(event.key==='Enter')saveCurrentAsPropPreset()">
+      <button class="prop-preset-save-btn" onclick="saveCurrentAsPropPreset()">💾 Guardar</button>
+    </div>
+    <div class="prop-preset-hint">Los presets se guardan en tu navegador. Hacé clic en uno para cargarlo.</div>
     <div class="prop-modal-section">Tipo de cuenta</div>
     <div class="prop-modal-grid">
       <div class="prop-modal-field" style="grid-column:1/-1">
@@ -1997,17 +2018,23 @@ async function confirmDelete(){
     delete _sessionCapitals[_session];
     closeModal('deleteModal');
     _session='__all__';
+    _allTrades=[];
+    _cachedEquity=[];
+    _calTrades=[];
     const capitalBtn=document.getElementById('capitalBtn');
     if(capitalBtn){capitalBtn.style.display='none';}
+    const propBtn=document.getElementById('propBtn');
+    if(propBtn){propBtn.style.display='none';}
     document.getElementById('margenDisplay').textContent='—';
     document.getElementById('equityDisplay').textContent='—';
     await loadSessions();
     init();
     showToast('Sesión eliminada.');
   } catch(e) {
-    restore();
     showToast(friendlyError(e), 'err');
   }
+  // FIX 2: restore() SIEMPRE se llama — antes solo estaba en el catch
+  restore();
 }
 
 // EXCEL PARSER
@@ -3090,9 +3117,24 @@ async function confirmImport(){
   if(margenVal > 0) await saveSessionCapital(name, margenVal);
   _pending=[];
   _session=name;
+
+  // FIX 1: Resetear estado completo antes de cargar los nuevos datos
+  // Evita que se muestren datos de la sesión anterior mientras carga
+  _allTrades=[];
+  _cachedEquity=[];
+  _calTrades=[];
+  _dayNotes={};
+  _tradeNotes={};
+  _tradeTags={};
+  _tradeScreenshots={};
+  _sessionCapitals={};
+
   await loadSessions();
+  await loadNotes();
   await loadCapitals();
+
   document.getElementById('sessionSelect').value=name;
+  _session=name; // reasignar por si loadSessions lo resetea
   init();
 }
 
@@ -3371,6 +3413,91 @@ let _sessionCapitals = {}; // { session_name: { margen } }
 
 // ── PROP FIRM CONFIG ─────────────────────────────────────────────────────────
 
+// ── PROP FIRM PRESETS ────────────────────────────────────────────────────────
+const PROP_PRESETS_BUILTIN = {
+  'FTMO Fase 1':      { account_type:'eval1',  profit_target:10, min_trading_days:4,  max_drawdown:10, drawdown_type:'static',       daily_drawdown:5, daily_drawdown_type:'balance', consistency_rule:null },
+  'FTMO Fase 2':      { account_type:'eval2',  profit_target:5,  min_trading_days:4,  max_drawdown:10, drawdown_type:'static',       daily_drawdown:5, daily_drawdown_type:'balance', consistency_rule:null },
+  'MyForexFunds E8':  { account_type:'eval1',  profit_target:8,  min_trading_days:0,  max_drawdown:8,  drawdown_type:'static',       daily_drawdown:4, daily_drawdown_type:'balance', consistency_rule:null },
+  'Topstep Combine':  { account_type:'eval1',  profit_target:6,  min_trading_days:0,  max_drawdown:6,  drawdown_type:'trailing_eod', daily_drawdown:3, daily_drawdown_type:'balance', consistency_rule:null },
+  'True Forex Funds': { account_type:'eval1',  profit_target:10, min_trading_days:5,  max_drawdown:10, drawdown_type:'static',       daily_drawdown:5, daily_drawdown_type:'equity',  consistency_rule:null },
+  'Apex Trader':      { account_type:'eval1',  profit_target:6,  min_trading_days:10, max_drawdown:3,  drawdown_type:'trailing_eod', daily_drawdown:null, daily_drawdown_type:'balance', consistency_rule:null },
+};
+
+function _getPropPresets() {
+  try {
+    const custom = JSON.parse(localStorage.getItem('zentinel_prop_presets') || '{}');
+    return { ...PROP_PRESETS_BUILTIN, ...custom };
+  } catch(e) { return { ...PROP_PRESETS_BUILTIN }; }
+}
+
+function _readPropFormValues() {
+  return {
+    account_type:        document.getElementById('propAccountType').value,
+    profit_target:       parseFloat(document.getElementById('propProfitTarget').value) || null,
+    min_trading_days:    parseInt(document.getElementById('propMinDays').value) || null,
+    max_drawdown:        parseFloat(document.getElementById('propMaxDD').value) || null,
+    drawdown_type:       document.getElementById('propMaxDDType').value,
+    daily_drawdown:      parseFloat(document.getElementById('propDailyDD').value) || null,
+    daily_drawdown_type: document.getElementById('propDailyDDType').value,
+    consistency_rule:    parseFloat(document.getElementById('propConsistency').value) || null,
+  };
+}
+
+function applyPropPreset(name) {
+  const presets = _getPropPresets();
+  const p = presets[name];
+  if (!p) return;
+  document.getElementById('propAccountType').value  = p.account_type || 'personal';
+  document.getElementById('propProfitTarget').value = p.profit_target || '';
+  document.getElementById('propMinDays').value       = p.min_trading_days || '';
+  document.getElementById('propMaxDD').value         = p.max_drawdown || '';
+  document.getElementById('propMaxDDType').value     = p.drawdown_type || 'static';
+  document.getElementById('propDailyDD').value       = p.daily_drawdown || '';
+  document.getElementById('propDailyDDType').value   = p.daily_drawdown_type || 'balance';
+  document.getElementById('propConsistency').value   = p.consistency_rule || '';
+}
+
+function saveCurrentAsPropPreset() {
+  const inp = document.getElementById('propPresetNameInput');
+  const name = inp ? inp.value.trim() : '';
+  if (!name) { showToast('Escribí un nombre para el preset.', 'warn'); return; }
+  try {
+    const custom = JSON.parse(localStorage.getItem('zentinel_prop_presets') || '{}');
+    custom[name] = _readPropFormValues();
+    localStorage.setItem('zentinel_prop_presets', JSON.stringify(custom));
+    if (inp) inp.value = '';
+    renderPropPresetButtons();
+    showToast('Preset "' + name + '" guardado.', 'ok');
+  } catch(e) { showToast('No se pudo guardar el preset.', 'err'); }
+}
+
+function deletePropPreset(name) {
+  try {
+    const custom = JSON.parse(localStorage.getItem('zentinel_prop_presets') || '{}');
+    delete custom[name];
+    localStorage.setItem('zentinel_prop_presets', JSON.stringify(custom));
+    renderPropPresetButtons();
+    showToast('Preset eliminado.');
+  } catch(e) {}
+}
+
+function renderPropPresetButtons() {
+  const wrap = document.getElementById('propPresetsWrap');
+  if (!wrap) return;
+  const custom = (() => { try { return JSON.parse(localStorage.getItem('zentinel_prop_presets') || '{}'); } catch(e) { return {}; } })();
+  const allPresets = _getPropPresets();
+  let html = '';
+  Object.keys(allPresets).forEach(name => {
+    const isCustom = !!custom[name];
+    const safeName = name.replace(/'/g, "\\'");
+    html += `<div class="prop-preset-chip${isCustom ? '' : ' builtin'}" onclick="applyPropPreset('${safeName}')" title="${isCustom ? 'Preset personalizado — clic para cargar' : 'Preset estándar — clic para cargar'}">
+      ${name}${isCustom ? ` <span class="prop-preset-del" onclick="event.stopPropagation();deletePropPreset('${safeName}')" title="Eliminar">×</span>` : ''}
+    </div>`;
+  });
+  if (!html) html = '<span style="font-size:11px;color:var(--muted)">Guardá un preset para verlo acá.</span>';
+  wrap.innerHTML = html;
+}
+
 function openPropModal() {
   if (_session === '__all__') return;
   const d = getCapital();
@@ -3383,20 +3510,13 @@ function openPropModal() {
   document.getElementById('propDailyDDType').value   = d?.daily_drawdown_type || 'balance';
   document.getElementById('propConsistency').value   = d?.consistency_rule || '';
   openModal('propModal');
+  // Render presets después de abrir (el DOM ya existe)
+  renderPropPresetButtons();
 }
 
 async function savePropConfig() {
   const d = getCapital();
-  const patch = {
-    account_type:        document.getElementById('propAccountType').value,
-    profit_target:       parseFloat(document.getElementById('propProfitTarget').value) || null,
-    min_trading_days:    parseInt(document.getElementById('propMinDays').value) || null,
-    max_drawdown:        parseFloat(document.getElementById('propMaxDD').value) || null,
-    drawdown_type:       document.getElementById('propMaxDDType').value,
-    daily_drawdown:      parseFloat(document.getElementById('propDailyDD').value) || null,
-    daily_drawdown_type: document.getElementById('propDailyDDType').value,
-    consistency_rule:    parseFloat(document.getElementById('propConsistency').value) || null,
-  };
+  const patch = _readPropFormValues();
   const btn = document.getElementById('propSaveBtn');
   const restore = setLoading(btn, 'Guardando...');
   let res;
@@ -3423,11 +3543,10 @@ function calcPropMetrics(trades, cfg) {
   const totalProfit = nets.reduce((a,b) => a+b, 0);
   const profitPct = (totalProfit / capital) * 100;
 
-  // Trading days
+  // Días activos de trading (por fecha de apertura)
   const tradingDays = new Set(trades.map(t => t.open_time?.slice(0,10))).size;
 
-  // Drawdown calculation
-  // Group trades by close date for EOD balance
+  // Agrupar P&L realizado por día de cierre
   const dayMap = {};
   trades.forEach(t => {
     const d = t.close_time?.slice(0,10);
@@ -3437,48 +3556,57 @@ function calcPropMetrics(trades, cfg) {
   });
   const days = Object.keys(dayMap).sort();
 
-  let maxDD = 0, currentDD = 0, peak = capital;
-  let highWater = capital;
+  // FIX 3: Cálculo correcto de drawdown
+  let maxDD = 0;
+  let highWater = capital; // high-water mark en USD absoluto
+  let runningBalance = capital;
+
   days.forEach(d => {
-    const eodBalance = highWater + dayMap[d];
+    runningBalance += dayMap[d];
     if (cfg.drawdown_type === 'trailing_eod') {
-      if (eodBalance > highWater) highWater = eodBalance;
-      currentDD = ((highWater - eodBalance) / capital) * 100;
+      // Trailing EOD: el high-water sube con el balance EOD, nunca baja
+      if (runningBalance > highWater) highWater = runningBalance;
+      const dd = ((highWater - runningBalance) / capital) * 100;
+      if (dd > maxDD) maxDD = dd;
     } else {
-      // static: always from initial capital
-      currentDD = ((capital - eodBalance) / capital) * 100;
-      if (eodBalance > highWater) highWater = eodBalance;
+      // Estático: siempre desde el capital inicial
+      const dd = ((capital - runningBalance) / capital) * 100;
+      if (dd > maxDD) maxDD = dd;
+      if (runningBalance > highWater) highWater = runningBalance;
     }
-    if (currentDD > maxDD) maxDD = currentDD;
   });
 
-  // Current drawdown from highWater
+  // Drawdown "live" actual
   const currentBalance = capital + totalProfit;
   let liveDD;
   if (cfg.drawdown_type === 'trailing_eod') {
-    liveDD = Math.max(0, ((highWater - currentBalance) / capital) * 100);
+    // FIX 3: el highWater debe considerar también el balance actual
+    const effectiveHW = Math.max(highWater, currentBalance);
+    liveDD = currentBalance >= effectiveHW ? 0 : ((effectiveHW - currentBalance) / capital) * 100;
   } else {
     liveDD = Math.max(0, ((capital - currentBalance) / capital) * 100);
   }
 
-  // Daily drawdown — worst day
+  // Peor día individual (para comparar con el límite de DD diario)
   let worstDayPct = 0;
   days.forEach(d => {
     const pct = Math.abs(Math.min(0, dayMap[d]) / capital * 100);
     if (pct > worstDayPct) worstDayPct = pct;
   });
 
-  // Consistency rule
+  // Regla de consistencia
   let consistencyViolation = null;
   if (cfg.consistency_rule && totalProfit > 0) {
     const bestDay = Math.max(...Object.values(dayMap));
-    const bestDayPct = (bestDay / totalProfit) * 100;
-    if (bestDayPct > cfg.consistency_rule) {
-      consistencyViolation = bestDayPct.toFixed(1);
+    if (bestDay > 0) {
+      const bestDayPct = (bestDay / totalProfit) * 100;
+      if (bestDayPct > cfg.consistency_rule) {
+        consistencyViolation = bestDayPct.toFixed(1);
+      }
     }
   }
 
-  return { capital, totalProfit, profitPct, tradingDays, liveDD, worstDayPct, consistencyViolation, highWater, currentBalance };
+  return { capital, totalProfit, profitPct, tradingDays, liveDD, worstDayPct, consistencyViolation, highWater, currentBalance, maxDD };
 }
 
 function renderPropCard() {
@@ -4424,8 +4552,7 @@ async function init(){
       <div id="hourHeatmap"></div>
     </div>
     <div class="card" id="c6" style="margin-bottom:24px">
-      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
-        <span>${_lang==='es'?'Calendario de Trading':'Trading Calendar'}</span>
+      <div class="card-title" style="display:flex;align-items:center;justify-content:flex-end;">
         <button onclick="openPosModal()" style="font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;padding:5px 12px;border:1.5px solid var(--gold);color:var(--gold);background:var(--gold-soft);border-radius:var(--radius-sm);cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:5px;" onmouseover="this.style.background='var(--gold)';this.style.color='#fff'" onmouseout="this.style.background='var(--gold-soft)';this.style.color='var(--gold)'">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="12" y2="16"/></svg>
           Position Sizer
