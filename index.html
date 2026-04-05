@@ -3556,7 +3556,7 @@ function calcPropMetrics(trades, cfg) {
 
   const dayMap = {};
   trades.forEach(t => {
-    const d = toNYDate(t.close_time);
+    const d = toNYDate(t.close_time || t.open_time);
     if (!d) return;
     if (!dayMap[d]) dayMap[d] = 0;
     dayMap[d] += t.profit + t.commission + t.swap;
