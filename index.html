@@ -1452,7 +1452,7 @@ const T = {
     kpi_max_dd: 'MAX DRAWDOWN',
     // Sections
     sec_equity: 'CURVA DE EQUITY',
-    sec_calendar: 'CALENDARIO',
+    sec_calendar: 'DIAGNÓSTICO',
     sec_analysis: 'ANÁLISIS',
     sec_trades: 'OPERACIONES',
     // Table headers
@@ -1609,7 +1609,7 @@ const T = {
     kpi_max_dd: 'MAX DRAWDOWN',
     // Sections
     sec_equity: 'EQUITY CURVE',
-    sec_calendar: 'CALENDAR',
+    sec_calendar: 'DIAGNÓSTICO',
     sec_analysis: 'ANALYSIS',
     sec_trades: 'TRADES',
     // Table headers
@@ -3543,58 +3543,60 @@ function calcPropMetrics(trades, cfg) {
   const totalProfit = nets.reduce((a,b) => a+b, 0);
   const profitPct = (totalProfit / capital) * 100;
 
-  // Días activos de trading (por fecha de apertura)
-  const tradingDays = new Set(trades.map(t => t.open_time?.slice(0,10))).size;
+  const toNYDate = ts => {
+    try {
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/New_York',
+        year: 'numeric', month: '2-digit', day: '2-digit'
+      }).format(new Date(ts));
+    } catch(e) { return ts?.slice(0,10); }
+  };
 
-  // Agrupar P&L realizado por día de cierre
+  const tradingDays = new Set(trades.map(t => toNYDate(t.open_time))).size;
+
   const dayMap = {};
   trades.forEach(t => {
-    const d = t.close_time?.slice(0,10);
+    const d = toNYDate(t.close_time);
     if (!d) return;
     if (!dayMap[d]) dayMap[d] = 0;
     dayMap[d] += t.profit + t.commission + t.swap;
   });
   const days = Object.keys(dayMap).sort();
 
-  // FIX 3: Cálculo correcto de drawdown
   let maxDD = 0;
-  let highWater = capital; // high-water mark en USD absoluto
+  let highWater = capital;
   let runningBalance = capital;
 
   days.forEach(d => {
     runningBalance += dayMap[d];
     if (cfg.drawdown_type === 'trailing_eod') {
-      // Trailing EOD: el high-water sube con el balance EOD, nunca baja
       if (runningBalance > highWater) highWater = runningBalance;
       const dd = ((highWater - runningBalance) / capital) * 100;
       if (dd > maxDD) maxDD = dd;
     } else {
-      // Estático: siempre desde el capital inicial
       const dd = ((capital - runningBalance) / capital) * 100;
       if (dd > maxDD) maxDD = dd;
       if (runningBalance > highWater) highWater = runningBalance;
     }
   });
 
-  // Drawdown "live" actual
   const currentBalance = capital + totalProfit;
   let liveDD;
   if (cfg.drawdown_type === 'trailing_eod') {
-    // FIX 3: el highWater debe considerar también el balance actual
     const effectiveHW = Math.max(highWater, currentBalance);
     liveDD = currentBalance >= effectiveHW ? 0 : ((effectiveHW - currentBalance) / capital) * 100;
   } else {
     liveDD = Math.max(0, ((capital - currentBalance) / capital) * 100);
   }
 
-  // Peor día individual (para comparar con el límite de DD diario)
   let worstDayPct = 0;
   days.forEach(d => {
-    const pct = Math.abs(Math.min(0, dayMap[d]) / capital * 100);
-    if (pct > worstDayPct) worstDayPct = pct;
+    if (dayMap[d] < 0) {
+      const pct = Math.abs(dayMap[d]) / capital * 100;
+      if (pct > worstDayPct) worstDayPct = pct;
+    }
   });
 
-  // Regla de consistencia
   let consistencyViolation = null;
   if (cfg.consistency_rule && totalProfit > 0) {
     const bestDay = Math.max(...Object.values(dayMap));
@@ -4559,10 +4561,6 @@ async function init(){
         </button>
       </div>
       <div class="insights-panel" id="insightsPanel" style="margin-bottom:20px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted)">${_lang==='es'?'Diagnóstico automático':'Automatic Diagnosis'}</span>
-        </div>
         ${insightsHTML}
       </div>
       <div class="cal-header"><div class="cal-month-label" id="calMonthLabel">---</div><div class="cal-nav-btns"><button class="cal-nav-btn" onclick="calPrev()">${_lang==='es'?'&#8592; Anterior':'&#8592; Prev'}</button><button class="cal-nav-btn" onclick="calNext()">${_lang==='es'?'Siguiente &#8594;':'Next &#8594;'}</button></div></div>
