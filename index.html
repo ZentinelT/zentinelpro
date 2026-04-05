@@ -2530,8 +2530,8 @@ function procRowsTradovate(rows, fname) {
     const stMs  = new Date(soldTS).getTime();
     const isLong = btMs <= stMs;
 
-    const open_time   = isLong ? boughtTS  : soldTS;
-    const close_time  = isLong ? soldTS    : boughtTS;
+    const open_time  = boughtTS < soldTS ? boughtTS : soldTS;
+    const close_time = boughtTS < soldTS ? soldTS   : boughtTS;
     const open_price  = isLong ? buyPrice  : sellPrice;
     const close_price = isLong ? sellPrice : buyPrice;
     const typ         = isLong ? 'buy'     : 'sell';
