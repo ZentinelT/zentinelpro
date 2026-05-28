@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -2771,6 +2772,244 @@ function procRowsTradovate(rows, fname) {
   }).filter(r => r && r.open_time && r.close_time);
 }
 
+// ── Tradovate Performance CSV parser ─────────────────────────────────────
+// Export: Account Reports → Performance tab → Download CSV
+// Columns: symbol, _tickSize, buyFillId, sellFillId, qty, buyPrice, sellPrice,
+//          pnl, boughtTimestamp, soldTimestamp, duration
+// pnl format: "$108.00" or "$(197.00)" for negatives
+function procRowsTradovatePerformance(rows, fname) {
+  const PIP = {
+    MNQ:0.25, NQ:0.25, MES:0.25, ES:0.25,
+    MYM:1,    YM:1,    M2K:0.1,  RTY:0.1,
+    MCL:0.01, CL:0.01, MGC:0.1,  GC:0.1,
+    MHG:0.0005, SI:0.005, ZB:0.03125
+  };
+
+  const hdr = rows[0].map(h => String(h||'').trim().toLowerCase().replace(/\s+/g,''));
+  const col = name => hdr.findIndex(h => h === name.toLowerCase().replace(/\s+/g,''));
+
+  const iSymbol   = col('symbol');
+  const iTickSize = col('_tickSize');
+  const iBuyPrice = col('buyPrice');
+  const iSellPrice= col('sellPrice');
+  const iPnl      = col('pnl');
+  const iQty      = col('qty');
+  const iBoughtTS = col('boughtTimestamp');
+  const iSoldTS   = col('soldTimestamp');
+
+  function parsePnl(v) {
+    if (v == null || v === '') return 0;
+    const s = String(v).trim();
+    // $(197.00) → -197.00 | $108.00 → 108.00
+    const neg = s.includes('(');
+    const n = parseFloat(s.replace(/[$(),\s]/g, ''));
+    return isNaN(n) ? 0 : (neg ? -n : n);
+  }
+
+  function pNum(v) {
+    if (v == null || v === '') return null;
+    const n = parseFloat(String(v).replace(/[,$\s]/g,''));
+    return isNaN(n) ? null : n;
+  }
+
+  function parseTS(s) {
+    if (!s) return null;
+    s = String(s).trim();
+    const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{2}:\d{2}:\d{2})$/);
+    if (!m) return null;
+    const [, mo, dd, yyyy, hms] = m;
+    const [hh, mm, ss] = hms.split(':').map(Number);
+    const edtC = new Date(Date.UTC(+yyyy, +mo-1, +dd, hh+4, mm, ss));
+    const nyH  = parseInt(new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'numeric',hour12:false}).format(edtC));
+    if (nyH === hh) return edtC.toISOString();
+    return new Date(Date.UTC(+yyyy, +mo-1, +dd, hh+5, mm, ss)).toISOString();
+  }
+
+  let idCounter = Date.now();
+
+  return rows.slice(1).map((c, i) => {
+    const rawSym  = String(c[iSymbol]||'').trim().toUpperCase();
+    // Strip expiry: MNQM6 → MNQ, MESM6 → MES, MYMM6 → MYM
+    const sym     = rawSym.replace(/[A-Z]\d+$/, '') || rawSym;
+    const buyPrice  = pNum(c[iBuyPrice]);
+    const sellPrice = pNum(c[iSellPrice]);
+    const pl        = parsePnl(c[iPnl]);
+    const vol       = pNum(c[iQty]) || 1;
+    const tickSize  = pNum(c[iTickSize]) || PIP[sym] || 0.25;
+    const boughtTS  = parseTS(String(c[iBoughtTS]||'').trim());
+    const soldTS    = parseTS(String(c[iSoldTS]||'').trim());
+
+    if (!boughtTS || !soldTS || buyPrice == null || sellPrice == null) return null;
+
+    // Direction: whichever timestamp is earlier = open side
+    const btMs   = new Date(boughtTS).getTime();
+    const stMs   = new Date(soldTS).getTime();
+    const isLong = btMs <= stMs;
+
+    const open_time   = isLong ? boughtTS  : soldTS;
+    const close_time  = isLong ? soldTS    : boughtTS;
+    const open_price  = isLong ? buyPrice  : sellPrice;
+    const close_price = isLong ? sellPrice : buyPrice;
+
+    const pip  = PIP[sym] || tickSize;
+    const pips = parseFloat(((isLong ? close_price - open_price : open_price - close_price) / pip).toFixed(1));
+    const dur  = Math.abs(Math.round((new Date(close_time) - new Date(open_time)) / 60000));
+
+    return {
+      position_id:      idCounter++,
+      symbol:           sym,
+      type:             isLong ? 'buy' : 'sell',
+      open_time,
+      open_price,
+      volume:           vol,
+      stop_loss:        null,
+      take_profit:      null,
+      close_time,
+      close_price,
+      commission:       parseFloat((-1.90 * vol).toFixed(2)),
+      swap:             0,
+      profit:           pl,
+      duration_minutes: dur,
+      pips,
+      result: (pl - 1.90 * vol) > 0.01 ? 'win' : (pl - 1.90 * vol) < -0.01 ? 'loss' : 'breakeven',
+      source_file:      fname,
+      session_name:     '__TEMP__',
+      user_id:          _user ? _user.id : null
+    };
+  }).filter(r => r && r.open_time && r.close_time);
+}
+
+// ── Tradovate Orders CSV parser ──────────────────────────────────────────
+// Export: Account → Orders (CSV)
+// Only "Filled" rows are used. Entry rows have Text = "multibracket" or "Tradingview".
+// Exit rows have Text = "Exit". Pairs are matched in chronological order per symbol.
+// Columns used: B/S, Product, avgPrice, filledQty, Fill Time, Status, Text
+function procRowsTradovateOrders(rows, fname) {
+  const PIP = {
+    MNQ:0.25, NQ:0.25, MES:0.25, ES:0.25,
+    MYM:1,    YM:1,    M2K:0.1,  RTY:0.1,
+    MCL:0.01, CL:0.01, MGC:0.1,  GC:0.1,
+    MHG:0.0005, SI:0.005, ZB:0.03125
+  };
+
+  const hdr = rows[0].map(h => String(h||'').trim().toLowerCase().replace(/\s+/g,''));
+  const col = name => hdr.findIndex(h => h === name.toLowerCase().replace(/\s+/g,''));
+
+  const iBs       = col('B/S');
+  const iProduct  = col('Product');
+  const iAvgPrice = col('avgPrice');
+  const iFilledQty= col('filledQty') !== -1 ? col('filledQty') : col('filledqty');
+  const iFillTime = col('fillTime') !== -1 ? col('fillTime') : col('fill time');
+  const iStatus   = col('Status');
+  const iText     = col('Text');
+
+  function pNum(v) {
+    if (v == null || v === '') return null;
+    const n = parseFloat(String(v).replace(/[,$\s]/g,''));
+    return isNaN(n) ? null : n;
+  }
+
+  function parseFillTime(s) {
+    if (!s) return null;
+    s = String(s).trim();
+    // Format: MM/DD/YYYY HH:MM:SS
+    const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{2}:\d{2}:\d{2})$/);
+    if (!m) return null;
+    const [, mo, dd, yyyy, hms] = m;
+    const [hh, mm, ss] = hms.split(':').map(Number);
+    // ET → UTC (same EDT/EST logic as Position History parser)
+    const edtCandidate = new Date(Date.UTC(+yyyy, +mo-1, +dd, hh+4, mm, ss));
+    const nyHour = parseInt(new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York', hour: 'numeric', hour12: false
+    }).format(edtCandidate));
+    if (nyHour === hh) return edtCandidate.toISOString();
+    const estCandidate = new Date(Date.UTC(+yyyy, +mo-1, +dd, hh+5, mm, ss));
+    return estCandidate.toISOString();
+  }
+
+  // Filter only filled rows
+  const filled = rows.slice(1).filter(c => {
+    const status = String(c[iStatus]||'').trim().toLowerCase();
+    const price  = pNum(c[iAvgPrice]);
+    return status === 'filled' && price != null;
+  });
+
+  // Separate entries and exits per symbol
+  const ENTRY_TEXTS = new Set(['multibracket','tradingview','chart']);
+  const entries = {}; // sym → [row, ...]
+  const trades  = [];
+  let idCounter = Date.now();
+
+  // Sort by fill time ascending
+  filled.sort((a, b) => {
+    const ta = parseFillTime(String(a[iFillTime]||'').trim()) || '';
+    const tb = parseFillTime(String(b[iFillTime]||'').trim()) || '';
+    return ta < tb ? -1 : ta > tb ? 1 : 0;
+  });
+
+  for (const c of filled) {
+    const sym    = String(c[iProduct]||'').trim().toUpperCase();
+    const text   = String(c[iText]||'').trim().toLowerCase();
+    const bs     = String(c[iBs]||'').trim().toLowerCase();
+    const price  = pNum(c[iAvgPrice]);
+    const qty    = pNum(c[iFilledQty]) || 1;
+    const fillTS = parseFillTime(String(c[iFillTime]||'').trim());
+    if (!fillTS || price == null) continue;
+
+    const isEntry = ENTRY_TEXTS.has(text);
+    const isExit  = text === 'exit';
+
+    if (isEntry) {
+      if (!entries[sym]) entries[sym] = [];
+      entries[sym].push({ bs, price, qty, fillTS });
+    } else if (isExit && entries[sym] && entries[sym].length > 0) {
+      const entry = entries[sym].shift();
+      const isLong = entry.bs === 'buy';
+      const open_price  = entry.price;
+      const close_price = price;
+      const open_time   = entry.fillTS;
+      const close_time  = fillTS;
+      const vol         = Math.min(entry.qty, qty);
+      const pip         = PIP[sym] || 0.25;
+      const pips = parseFloat(((isLong ? close_price - open_price : open_price - close_price) / pip).toFixed(1));
+      const pl = isLong
+        ? parseFloat(((close_price - open_price) * vol * (1 / pip) * pip * (sym.startsWith('M') ? 2 : 20)).toFixed(2))
+        : parseFloat(((open_price - close_price) * vol * (1 / pip) * pip * (sym.startsWith('M') ? 2 : 20)).toFixed(2));
+      // For MNQ/MES/MYM tick value = $0.50/$1.25/$0.50 per mini contract
+      // Use pips × tickValue approach
+      const TICK_VALUE = { MNQ:0.50, NQ:5, MES:1.25, ES:12.50, MYM:0.50, YM:5, M2K:0.50, RTY:5, MCL:1, CL:10, MGC:1, GC:10 };
+      const tickVal = TICK_VALUE[sym] || 0.50;
+      const profit = parseFloat((pips * tickVal * vol).toFixed(2));
+      const dur = Math.abs(Math.round((new Date(close_time) - new Date(open_time)) / 60000));
+
+      trades.push({
+        position_id:      idCounter++,
+        symbol:           sym,
+        type:             isLong ? 'buy' : 'sell',
+        open_time,
+        open_price,
+        volume:           vol,
+        stop_loss:        null,
+        take_profit:      null,
+        close_time,
+        close_price,
+        commission:       0,
+        swap:             0,
+        profit,
+        duration_minutes: dur,
+        pips,
+        result: profit > 0.01 ? 'win' : profit < -0.01 ? 'loss' : 'breakeven',
+        source_file:      fname,
+        session_name:     '__TEMP__',
+        user_id:          _user ? _user.id : null
+      });
+    }
+  }
+
+  if (trades.length === 0) throw new Error('No se encontraron trades en el archivo Orders de Tradovate.\nAsegurate de exportar el archivo "Position History" (no "Orders") para mejores resultados.');
+  return trades;
+}
+
 function detectAndParseCsv(txt, fname) {
   // Remove BOM
   txt = txt.replace(/^\uFEFF/, '');
@@ -2795,6 +3034,18 @@ function detectAndParseCsv(txt, fname) {
   if (rows.length < 2) throw new Error('Archivo CSV vacío o inválido');
 
   const header = rows[0].map(h => h.toLowerCase().replace(/["\s]/g,''));
+
+  // Tradovate Performance CSV: fingerprint = "buyfillid" + "pnl" + "boughttimestamp"
+  if (header.some(h => h === 'buyfillid') && header.some(h => h === 'pnl') &&
+      header.some(h => h === 'boughttimestamp'))
+    return procRowsTradovatePerformance(rows, fname);
+
+  // Tradovate Orders CSV: fingerprint = "orderid" + "b/s" + "avgprice" + "filltime"
+  if (header.some(h => h === 'orderid' || h === 'order id') &&
+      header.some(h => h === 'b/s') &&
+      header.some(h => h === 'avgprice') &&
+      header.some(h => h === 'filltime' || h === 'fill time'))
+    return procRowsTradovateOrders(rows, fname);
 
   // Tradovate Position History: unique fingerprint = "pairid" + "_ticksize" + "boughttimestamp"
   if (header.some(h => h === 'pairid') || header.some(h => h === '_ticksize') ||
@@ -2828,7 +3079,12 @@ function detectAndParseCsv(txt, fname) {
   if (rows[0].length >= 14)
     return procRowsMT4CSV(rows, fname);
 
-  throw new Error('Formato CSV no reconocido.\nFormatos soportados: MT5, MT4, cTrader, NinjaTrader 8, TradingView, Tradovate.\nVerificá que el archivo tenga encabezados de columna.');
+  // Tradovate Cash History alone: friendly error
+  if (header.some(h => h === 'cashchangetype' || h === 'cash change type') &&
+      header.some(h => h === 'delta') && header.some(h => h === 'timestamp'))
+    throw new Error('Este archivo es el Cash History de Tradovate (comisiones).\nCargalo junto con el Orders CSV o Position History CSV al mismo tiempo (seleccioná los 2 archivos de una vez) para que las comisiones se apliquen automáticamente.');
+
+  throw new Error('Formato CSV no reconocido.\nFormatos soportados: MT5, MT4, cTrader, NinjaTrader 8, TradingView, Tradovate (Position History u Orders).\nVerificá que el archivo tenga encabezados de columna.');
 }
 
 // ── Auto-detect XLSX format by headers ───────────────────────────────────
@@ -3187,9 +3443,13 @@ async function handleImport(ev){
       if (cashIdx >= 0) {
         const rows = parseCSV(texts[posIdx].replace(/^\uFEFF/,''), ',');
         const hdr  = rows[0].map(h => h.toLowerCase().replace(/[\s"]/g,''));
-        if (hdr.some(h => h === 'pairid') || hdr.some(h => h === '_ticksize')) {
+        const isPositionHistory = hdr.some(h => h === 'pairid') || hdr.some(h => h === '_ticksize');
+        const isOrdersFile = hdr.some(h => h === 'orderid' || h === 'order id') && hdr.some(h => h === 'b/s') && hdr.some(h => h === 'avgprice');
+        if (isPositionHistory || isOrdersFile) {
           const feeMap = parseTradovateCash(texts[cashIdx]);
-          const trades = procRowsTradovate(rows, files[posIdx].name);
+          const trades = isPositionHistory
+            ? procRowsTradovate(rows, files[posIdx].name)
+            : procRowsTradovateOrders(rows, files[posIdx].name);
           // applyTradovateFees needs the parseTradovateTS function — call inline
           const enriched = applyTradovateFees(trades, feeMap, s => {
             if (!s) return null;
