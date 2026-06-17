@@ -2879,6 +2879,113 @@ function procRowsTradovatePerformance(rows, fname) {
   }).filter(r => r && r.open_time && r.close_time);
 }
 
+// ── TradingView Strategy Tester (List of Trades) CSV parser ──────────────
+// Export: Strategy Tester → List of Trades → Export trades data
+// Cada trade ocupa 2 filas (Entrada/Entry + Salida/Exit) agrupadas por "Trade number"
+// Columnas (ES): Trade number, Tipo, Fecha y hora, Señal, Precio USD, Tamaño (cant.), Net PnL USD
+// Columnas (EN): Trade #, Type, Date/Time, Signal, Price USD, Quantity, Net P&L USD
+function procRowsTVStrategy(rows, fname) {
+  const hdrRaw = rows[0].map(h => String(h||'').trim());
+  const hdr = hdrRaw.map(h => h.toLowerCase().replace(/\s+/g,''));
+  const col = (...names) => {
+    for (const n of names) {
+      const i = hdr.indexOf(n.toLowerCase().replace(/\s+/g,''));
+      if (i !== -1) return i;
+    }
+    return -1;
+  };
+
+  const iNum    = col('Trade number', 'Trade #', 'Trade#');
+  const iTipo   = col('Tipo', 'Type');
+  const iFecha  = col('Fecha y hora', 'Date/Time');
+  const iPrecio = col('Precio USD', 'Price USD', 'Precio', 'Price');
+  const iQty    = col('Tamaño (cant.)', 'Quantity', 'Tamaño', 'Size');
+  const iPnl    = col('Net PnL USD', 'Net P&L USD', 'Net Profit USD');
+
+  if (iNum < 0 || iTipo < 0 || iFecha < 0 || iPrecio < 0 || iPnl < 0)
+    throw new Error('TradingView Strategy: no se encontraron las columnas esperadas.');
+
+  // Try to detect symbol from filename: look for known ticker patterns
+  let symbol = 'NAS100';
+  const fMatch = fname.match(/(NAS100|US100|NQ\d?|MNQ\d?|ES\d?|MES\d?|SPX500|US500|DJI|YM\d?|GER40|DAX|XAUUSD|EURUSD|GBPUSD|BTCUSD)/i);
+  if (fMatch) symbol = fMatch[1].toUpperCase();
+
+  function parseDT(s) {
+    if (!s) return null;
+    s = String(s).trim();
+    // Format: YYYY-MM-DD HH:MM
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
+    if (!m) return null;
+    const [, yyyy, mo, dd, hh, mm] = m;
+    return new Date(Date.UTC(+yyyy, +mo-1, +dd, +hh, +mm, 0)).toISOString();
+  }
+
+  function pNum(v) {
+    if (v == null || v === '') return null;
+    const n = parseFloat(String(v).replace(/[,$\s]/g,''));
+    return isNaN(n) ? null : n;
+  }
+
+  // Group rows by trade number
+  const groups = {};
+  for (const c of rows.slice(1)) {
+    const num = String(c[iNum]||'').trim();
+    if (!num) continue;
+    if (!groups[num]) groups[num] = [];
+    groups[num].push(c);
+  }
+
+  let idCounter = Date.now();
+  const trades = [];
+
+  for (const num in groups) {
+    const g = groups[num];
+    const entryRow = g.find(c => /entrada|entry/i.test(String(c[iTipo]||'')));
+    const exitRow  = g.find(c => /salida|exit/i.test(String(c[iTipo]||'')));
+    if (!entryRow || !exitRow) continue;
+
+    const tipoStr  = String(entryRow[iTipo]||'').toLowerCase();
+    const isLong   = /largo|long/.test(tipoStr);
+
+    const open_time   = parseDT(entryRow[iFecha]);
+    const close_time  = parseDT(exitRow[iFecha]);
+    const open_price  = pNum(entryRow[iPrecio]);
+    const close_price = pNum(exitRow[iPrecio]);
+    const vol          = pNum(entryRow[iQty]) || 1;
+    const pl           = pNum(exitRow[iPnl]);
+
+    if (!open_time || !close_time || open_price == null || close_price == null || pl == null) continue;
+
+    const dur = Math.abs(Math.round((new Date(close_time) - new Date(open_time)) / 60000));
+    const pips = parseFloat((isLong ? close_price - open_price : open_price - close_price).toFixed(2));
+
+    trades.push({
+      position_id:      idCounter++,
+      symbol,
+      type:              isLong ? 'buy' : 'sell',
+      open_time,
+      open_price,
+      volume:            vol,
+      stop_loss:         null,
+      take_profit:       null,
+      close_time,
+      close_price,
+      commission:        0,
+      swap:              0,
+      profit:            pl,
+      duration_minutes:  dur,
+      pips,
+      result: pl > 0.01 ? 'win' : pl < -0.01 ? 'loss' : 'breakeven',
+      source_file:       fname,
+      session_name:      '__TEMP__',
+      user_id:           _user ? _user.id : null
+    });
+  }
+
+  if (trades.length === 0) throw new Error('No se encontraron trades en el archivo de TradingView Strategy Tester.');
+  return trades.sort((a,b) => new Date(a.open_time) - new Date(b.open_time));
+}
+
 // ── Tradovate Orders CSV parser ──────────────────────────────────────────
 // Export: Account → Orders (CSV)
 // Only "Filled" rows are used. Entry rows have Text = "multibracket" or "Tradingview".
@@ -3064,6 +3171,12 @@ function detectAndParseCsv(txt, fname) {
   if ((header.some(h => h==='order'||h==='ticket')) && header.some(h=>h==='type') &&
       header.some(h => h==='size'||h==='volume'))
     return procRowsMT4CSV(rows, fname);
+
+  // TradingView Strategy Tester (List of Trades): "Trade number"/"Trade #" + "Tipo"/"Type" + "Net PnL USD"/"Net P&L USD"
+  if ((header.some(h => h === 'tradenumber' || h === 'trade#' || h === 'trade')) &&
+      (header.some(h => h === 'tipo' || h === 'type')) &&
+      (header.some(h => h === 'netpnlusd' || h === 'netp&lusd')))
+    return procRowsTVStrategy(rows, fname);
 
   // TradingView Cash History: hora/time + saldo/balance + acción/action columns
   if ((header.some(h=>h.includes('hora')||h.includes('time'))) &&
