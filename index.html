@@ -2900,7 +2900,7 @@ function procRowsTVStrategy(rows, fname) {
   const iFecha  = col('Fecha y hora', 'Date/Time');
   const iPrecio = col('Precio USD', 'Price USD', 'Precio', 'Price');
   const iQty    = col('Tamaño (cant.)', 'Quantity', 'Tamaño', 'Size');
-  const iPnl    = col('Net PnL USD', 'Net P&L USD', 'Net Profit USD');
+  const iPnl    = col('Net PnL USD', 'Net P&L USD', 'Net Profit USD', 'PyG netas USD', 'PnL neto USD');
 
   if (iNum < 0 || iTipo < 0 || iFecha < 0 || iPrecio < 0 || iPnl < 0)
     throw new Error('TradingView Strategy: no se encontraron las columnas esperadas.');
@@ -3175,7 +3175,7 @@ function detectAndParseCsv(txt, fname) {
   // TradingView Strategy Tester (List of Trades): "Trade number"/"Trade #" + "Tipo"/"Type" + "Net PnL USD"/"Net P&L USD"
   if ((header.some(h => h === 'tradenumber' || h === 'trade#' || h === 'trade')) &&
       (header.some(h => h === 'tipo' || h === 'type')) &&
-      (header.some(h => h === 'netpnlusd' || h === 'netp&lusd')))
+      (header.some(h => h === 'netpnlusd' || h === 'netp&lusd' || h === 'pygnetasusd' || h === 'pnlnetousd')))
     return procRowsTVStrategy(rows, fname);
 
   // TradingView Cash History: hora/time + saldo/balance + acción/action columns
