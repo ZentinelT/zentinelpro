@@ -2468,6 +2468,48 @@ function procRowsMT4CSV(rows, fname) {
 }
 
 
+
+// ── Hyperprop CSV parser ──────────────────────────────────────────────────
+// Columns: entry_time,exit_time,account,contract,side,quantity,entry_price,
+//          exit_price,duration,gross_pnl,fees,commission,net_pnl,pnl_ticks,
+//          entry_time_utc,exit_time_utc
+// Cada fila ya es un trade cerrado (entrada+salida juntas); trae timestamps
+// UTC explícitos, así que no hace falta ajustar zona horaria como en pD().
+function procRowsHyperprop(rows, fname) {
+  const header = rows[0].map(h => String(h || '').toLowerCase().trim());
+  const idx = name => header.indexOf(name);
+  const iEntry = idx('entry_time_utc'), iExit = idx('exit_time_utc');
+  const iEntryLocal = idx('entry_time'), iExitLocal = idx('exit_time');
+  const iContract = idx('contract'), iSide = idx('side'), iQty = idx('quantity');
+  const iEntryPx = idx('entry_price'), iExitPx = idx('exit_price');
+  const iGross = idx('gross_pnl'), iFees = idx('fees'), iComm = idx('commission');
+  const iTicks = idx('pnl_ticks');
+  return rows.slice(1).map((c, rowIdx) => {
+    const side = String(c[iSide] || '').trim().toLowerCase();
+    if (!['long', 'short'].includes(side)) return null;
+    const typ = side === 'long' ? 'buy' : 'sell';
+    const odtRaw = iEntry >= 0 ? c[iEntry] : c[iEntryLocal];
+    const cdtRaw = iExit >= 0 ? c[iExit] : c[iExitLocal];
+    if (isNaN(new Date(odtRaw)) || isNaN(new Date(cdtRaw))) return null;
+    const odt = new Date(odtRaw).toISOString();
+    const cdt = new Date(cdtRaw).toISOString();
+    const gross = pV(c[iGross]) || 0;
+    const fees = pV(c[iFees]) || 0;
+    const comm = pV(c[iComm]) || 0;
+    const cost = -(fees + comm);
+    const dur = Math.round((new Date(cdt) - new Date(odt)) / 60000);
+    return {
+      position_id: rowIdx + 1, symbol: String(c[iContract] || '').trim().toUpperCase(),
+      type: typ, open_time: odt, open_price: pV(c[iEntryPx]), volume: pV(c[iQty]),
+      stop_loss: null, take_profit: null, close_time: cdt, close_price: pV(c[iExitPx]),
+      commission: cost, swap: 0, profit: gross, duration_minutes: dur,
+      pips: iTicks >= 0 ? pV(c[iTicks]) : null,
+      result: (gross + cost) > 0.01 ? 'win' : (gross + cost) < -0.01 ? 'loss' : 'breakeven',
+      source_file: fname, session_name: '__TEMP__', user_id: _user.id
+    };
+  }).filter(r => r && r.open_time && r.close_time);
+}
+
 // ── TradingView Cash History CSV parser ──────────────────────────────────
 // Format: Hora, Saldo anterior, Saldo posterior, PyG realizadas (valor), PyG realizadas (divisa), Acción
 // Rows come newest-first. Reconstructs trades by pairing open/close events.
@@ -2795,6 +2837,11 @@ function detectAndParseCsv(txt, fname) {
   if (rows.length < 2) throw new Error('Archivo CSV vacío o inválido');
 
   const header = rows[0].map(h => h.toLowerCase().replace(/["\s]/g,''));
+
+  // Hyperprop: fingerprint = "entry_time" + "exit_time" + "net_pnl"/"gross_pnl"
+  if (header.some(h => h === 'entry_time') && header.some(h => h === 'exit_time') &&
+      (header.some(h => h === 'net_pnl') || header.some(h => h === 'gross_pnl')))
+    return procRowsHyperprop(rows, fname);
 
   // Tradovate Position History: unique fingerprint = "pairid" + "_ticksize" + "boughttimestamp"
   if (header.some(h => h === 'pairid') || header.some(h => h === '_ticksize') ||
